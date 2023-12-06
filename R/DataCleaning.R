@@ -44,7 +44,7 @@ combine_datasets <- function(survey_list, ids_vector, id_column_name) {
       }
 
       # Create an identifier for the year based on the survey_name
-      survey_with_year <- survey_list[[year]][[survey_name]] %>%
+      survey_with_year <- survey_subset %>%
         mutate(Year = year)
       
       # If the dataset for the survey doesn't exist in the final datasets, initialize it
