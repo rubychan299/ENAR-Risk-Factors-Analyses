@@ -1,0 +1,2 @@
+load("/Users/yuyuchen/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/Questionaires.RData")
+load("/Users/yuyuchen/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/Laboratory.RData")

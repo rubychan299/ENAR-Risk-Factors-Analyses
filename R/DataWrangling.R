@@ -1,6 +1,7 @@
 library(survey)
 library(gtsummary)
 library(tidyverse)
+library(haven)
 
 # Loading Data####
 library(cardioStatsUSA)
@@ -34,3 +35,11 @@ table1 %>%
   as_gt() %>%
   gt::gtsave(filename = "tables/table1_byyrs.html")
 
+# Load External Data####
+# Note: PAHS_H(lab), PAXRAW_C, PAXRAW_D, SPXRAW_E, SPXRAW_F, SPXRAW_G(exam) not avaliable
+id <- nhanes_data$svy_id
+
+dat.sources <-  list.files("data/cleaned", 
+                               pattern="*.RData$", full.names=TRUE, 
+                               ignore.case=TRUE)
+sapply(dat.sources, load, .GlobalEnv)
