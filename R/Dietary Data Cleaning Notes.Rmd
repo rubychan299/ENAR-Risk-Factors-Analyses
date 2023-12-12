@@ -1,0 +1,184 @@
+---
+title: "Dietary Data Cleaning Notes"
+author: "Yuyu(Ruby) Chen"
+date: "2023-12-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exclusion
+
+remove 2019-2021 due to the difference in vars
+
+# DR1IFF and DR2IFF
+
+## Criteria
+DRABF - Breast fed infant (either day) - keep = no(0)
+DR2DRSTZ - Dietary recall status - keep = reliable(1)
+DRDINT - Number of days of intake - keep = both(2)
+
+## vars:
+DR2CCMTX - Combination food type
+DR2FS - Source of food
+
+# DR1TOT and DR2TOT
+
+## vars 
+DR2TKCAL - Energy (kcal)
+DR2TPROT - Protein (gm)
+DR2TCARB - Carbohydrate (gm)
+DR2TSUGR - Total sugars (gm)
+DR2TFIBE - Dietary fiber (gm)
+DR2TTFAT - Total fat (gm)
+DR2TSFAT - Total saturated fatty acids (gm)
+DR2TMFAT - Total monounsaturated fatty acids (gm)
+DR2TPFAT - Total polyunsaturated fatty acids (gm)
+DR2TCHOL - Cholesterol (mg)
+DR2TATOC - Vitamin E as alpha-tocopherol (mg)
+DR2TATOA - Added alpha-tocopherol (Vitamin E) (mg)
+DR2TRET - Retinol (mcg)
+DR2TVARA - Vitamin A, RAE (mcg)
+DR2TACAR - Alpha-carotene (mcg)
+DR2TBCAR - Beta-carotene (mcg)
+DR2TCRYP - Beta-cryptoxanthin (mcg)
+DR2TLYCO - Lycopene (mcg)
+DR2TLZ - Lutein + zeaxanthin (mcg)
+DR2TVB1 - Thiamin (Vitamin B1) (mg)
+DR2TVB2 - Riboflavin (Vitamin B2) (mg)
+DR2TNIAC - Niacin (mg)
+DR2TVB6 - Vitamin B6 (mg)
+DR2TFOLA - Total Folate (mcg)
+DR2TFA - Folic acid (mcg)
+DR2TFF - Food folate (mcg)
+DR2TFDFE - Folate, DFE (mcg)
+DR2TVB12 - Vitamin B12 (mcg)
+DR2TB12A - Added vitamin B12 (mcg)
+DR2TVC - Vitamin C (mg)
+DR2TVK - Vitamin K (mcg)
+DR2TCALC - Calcium (mg)
+DR2TPHOS - Phosphorus (mg)
+DR2TMAGN - Magnesium (mg)
+DR2TIRON - Iron (mg)
+DR2TZINC - Zinc (mg)
+DR2TCOPP - Copper (mg)
+DR2TSODI - Sodium (mg)
+DR2TPOTA - Potassium (mg)
+DR2TSELE - Selenium (mcg)
+DR2TCAFF - Caffeine (mg)
+DR2TTHEO - Theobromine (mg)
+DR2TALCO - Alcohol (gm)
+DR2TMOIS - Moisture (gm)
+DR2TS040 - SFA 4:0 (Butanoic) (gm)
+DR2TS060 - SFA 6:0 (Hexanoic) (gm)
+DR2TS080 - SFA 8:0 (Octanoic) (gm)
+DR2TS100 - SFA 10:0 (Decanoic) (gm)
+DR2TS120 - SFA 12:0 (Dodecanoic) (gm)
+DR2TS140 - SFA 14:0 (Tetradecanoic) (gm)
+DR2TS160 - SFA 16:0 (Hexadecanoic) (gm)
+DR2TS180 - SFA 18:0 (Octadecanoic) (gm)
+DR2TM161 - MFA 16:1 (Hexadecenoic) (gm)
+DR2TM181 - MFA 18:1 (Octadecenoic) (gm)
+DR2TM201 - MFA 20:1 (Eicosenoic) (gm)
+DR2TM221 - MFA 22:1 (Docosenoic) (gm)
+DR2TP182 - PFA 18:2 (Octadecadienoic) (gm)
+DR2TP183 - PFA 18:3 (Octadecatrienoic) (gm)
+DR2TP184 - PFA 18:4 (Octadecatetraenoic) (gm)
+DR2TP204 - PFA 20:4 (Eicosatetraenoic) (gm)
+DR2TP205 - PFA 20:5 (Eicosapentaenoic) (gm)
+DR2TP225 - PFA 22:5 (Docosapentaenoic) (gm)
+DR2TP226 - PFA 22:6 (Docosahexaenoic) (gm)
+DR2_300 - Compare food consumed yesterday to usual
+DR2_320 - Total plain water drank yesterday (gm)
+DR2_330 - Total tap water drank yesterday (gm)
+DR2BWATR - Total bottled water drank yesterday (gm)
+DR2CWATR - Plain carbonated water (gm)
+DR2TWS - Tap Water Source
+
+
+# DS1IDS and DS2IDS
+
+## vars
+DS2DS - Any Dietary Supplements taken?
+DS2DSCNT - Total # of Dietary Supplements Taken
+DS2AN - Any Antacids Taken?
+DS2ANCNT - Total # of Antacids Taken
+DS2TKCAL - Energy (kcal)
+DS2TPROT - Protein (gm)
+DS2TCARB - Carbohydrate (gm)
+DS2TSUGR - Total sugars (gm)
+DS2TFIBE - Dietary fiber (gm)
+DS2TTFAT - Total fat (gm)
+DS2TSFAT - Total saturated fatty acids (gm)
+DS2TMFAT - Total monounsaturated fatty acids (gm)
+DS2TPFAT - Total polyunsaturated fatty acids (gm)
+DS2TCHOL - Cholesterol (mg)
+DS2TLYCO - Lycopene (mcg)
+DS2TLZ - Lutein + zeaxanthin (mcg)
+DS2TVB1 - Thiamin (Vitamin B1) (mg)
+DS2TVB2 - Riboflavin (Vitamin B2) (mg)
+DS2TNIAC - Niacin (mg)
+DS2TVB6 - Vitamin B6 (mg)
+DS2TFA - Folic acid (mcg)
+DS2TFDFE - Folate, DFE (mcg)
+DS2TCHL - Total choline (mg)
+DS2TVB12 - Vitamin B12 (mcg)
+DS2TVC - Vitamin C (mg)
+DS2TVK - Vitamin K (mcg)
+DS2TVD - Vitamin D (D2 + D3) (mcg)
+DS2TCALC - Calcium (mg)
+DS2TPHOS - Phosphorus (mg)
+DS2TMAGN - Magnesium (mg)
+DS2TIRON - Iron (mg)
+DS2TZINC - Zinc (mg)
+DS2TCOPP - Copper (mg)
+DS2TSODI - Sodium (mg)
+DS2TPOTA - Potassium (mg)
+DS2TSELE - Selenium (mcg)
+DS2TCAFF - Caffeine (mg)
+
+# DSQTOT
+
+## vars
+
+DSDCOUNT - Total # of Dietary Supplements Taken
+DSDANCNT - Total # of Antacids Taken
+DSD010 - Any Dietary Supplements Taken?
+DSD010AN - Any Antacids Taken?
+DSQTKCAL - Energy (kcal)
+DSQTPROT - Protein (gm)
+DSQTCARB - Carbohydrate (gm)
+DSQTSUGR - Total sugars (gm)
+DSQTFIBE - Dietary fiber (gm)
+DSQTTFAT - Total fat (gm)
+DSQTSFAT - Total saturated fatty acids (gm)
+DSQTMFAT - Total monounsaturated fatty acids (gm)
+DSQTPFAT - Total polyunsaturated fatty acids (gm)
+DSQTCHOL - Cholesterol (mg)
+DSQTLYCO - Lycopene (mcg)
+DSQTLZ - Lutein + zeaxanthin (mcg)
+DSQTVB1 - Thiamin (Vitamin B1) (mg)
+DSQTVB2 - Riboflavin (Vitamin B2) (mg)
+DSQTNIAC - Niacin (mg)
+DSQTVB6 - Vitamin B6 (mg)
+DSQTFA - Folic acid (mcg)
+DSQTFDFE - Folate, DFE (mcg)
+DSQTCHL - Total choline (mg)
+DSQTVB12 - Vitamin B12 (mcg)
+DSQTVC - Vitamin C (mg)
+DSQTVK - Vitamin K (mcg)
+DSQTVD - Vitamin D (D2 + D3) (mcg)
+DSQTCALC - Calcium (mg)
+DSQTPHOS - Phosphorus (mg)
+DSQTMAGN - Magnesium (mg)
+DSQTIRON - Iron (mg)
+DSQTZINC - Zinc (mg)
+DSQTCOPP - Copper (mg)
+DSQTSODI - Sodium (mg)
+DSQTPOTA - Potassium (mg)
+DSQTSELE - Selenium (mcg)
+DSQTCAFF - Caffeine (mg)
+DSQTIODI - Iodine (mcg)
+
