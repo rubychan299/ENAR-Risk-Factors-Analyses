@@ -1,0 +1,58 @@
+---
+title: "Dietary Data Cleaning Notes"
+author: "Yuyu(Ruby) Chen"
+date: "2023-12-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+
+# https://cran.r-project.org/web/packages/nhanesA/vignettes/Introducing_nhanesA.html
+load('/Users/taehyo/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/Laboratory.RData')
+```
+
+```{r}
+dataset_names <- names(lab_dat) # 276
+# extract the relevant ones in the excel list 
+relevant <- c('ALB_CR',
+              'UAS', 'UASS', 'L06UAS', 
+              'PBCD', 'L06BMT', 'LAB06', 'L06', 
+              'BIOPRO', 'L40',
+              'CHLMDA', 'L05',
+              'HDL', 'TRIGLY', 'L13AM', 'TCHOL', 'L13',
+              'CBC', 'L25', 
+              'COT', 'L06COT', 'COTNAL',
+              'CRP', 'L11', 'HSCRP',
+              'FERTIN', 'L06TFR',
+              'L06NB', 'FOLFMS',
+              'GLU', 'L10AM',
+              'GHB', 'L10', 
+              'L09', 'HSV',
+              'HIV', 'L03',
+              'UIO', 'L06UIO',
+              'FETIB', 'L40FE',
+              'L20',
+              'L06HM', 'UHM', 'UM', 
+              'L28NPB', 'SSPCB', 'PCBPOL',
+              'OPD', 'L26OPD', 
+              'PERNT', 'PERNTS', 'SSNO3P',
+              'SSPST', 'L28OCP', 'PSTPOL',
+              'PHTHTE', 'L24PH', 'SSPHTE', 'PHPYPA',
+              'L31PAH', 'PAH', 'PAHS', 
+              'VID',
+              'VOCWB', 'L04VOC', 'VOCMWB',
+              'HPVSWR',
+              'HEPA', 'L02HPA', 
+              'HEPB', 'L02HBS', 'HEPBD',
+              'HEPC') 
+rel_lab_dat <- lab_dat[relevant]
+# TODO: 
+# remove duplicate variables 
+# filter variables based on meaning (check which to keep and which to discard)
+# extract the data into single data frame 
+```

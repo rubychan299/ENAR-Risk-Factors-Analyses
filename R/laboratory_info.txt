@@ -1,0 +1,221 @@
+# MUST
+SEQN
+Year
+
+# Albumin and Creatinine 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/ALB_CR_E.htm
+URXUMA - Albumin, urine (ug/mL)
+URXUCR - Creatinine, urine (mg/dL)
+
+# Arsenic
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/UAS_D.htm
+
+# Standard Biochemistry Profile
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L40_C.htm
+LBXSATSI - Alanine aminotransferase ALT (U/L)
+LBXSASSI - Aspartate aminotransferase AST (U/L)
+LBXSAPSI - Alkaline phosphotase (U/L)
+LBXSBU - Blood urea nitrogen (mg/dL)
+LBXSCA - Total calcium (mg/dL)
+LBXSC3SI - Bicarbonate (mmol/L)
+LBXSGTSI - Gamma glutamyl transferase (U/L)
+LBXSGL - Glucose, serum (mg/dL)
+LBXSIR - Iron, refigerated (ug/dL)
+LBXSLDSI - Lactate dehydrogenase LDH (U/L)
+LBXSPH - Phosphorus (mg/dL)
+LBXSTB - Total bilirubin (mg/dL)
+LBXSTP - Total protein (g/dL)
+LBXSUA - Uric acid (mg/dL)
+LBXSNASI - Sodium (mmol/L)
+LBXSKSI - Potassium (mmol/L)
+LBXSCLSI - Chloride (mmol/L)
+LBXSOSSI - Osmolality (mmol/Kg)
+LBXSGB - Globulin (g/dL)
+
+# Urinary Chlamydia
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L05_C.htm
+URXUCL - Urinary Chlamydia
+
+# Complete Blood Count
+# https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/CBC_J.htm
+LBXWBCSI - White blood cell count (1000 cells/uL)
+LBXLYPCT - Lymphocyte percent (%)
+LBXMOPCT - Monocyte percent (%)
+LBXNEPCT - Segmented neutrophils percent (%)
+LBXEOPCT - Eosinophils percent (%)
+LBXBAPCT - Basophils percent (%)
+LBXRBCSI - Red blood cell count (million cells/uL)
+LBXHGB - Hemoglobin (g/dL)
+LBXHCT - Hematocrit (%)
+LBXMCVSI - Mean cell volume (fL)
+LBXMCHSI - Mean cell hemoglobin (pg)
+LBXMC - Mean Cell Hgb Conc. (g/dL)
+LBXRDW - Red cell distribution width (%)
+LBXPLTSI - Platelet count (1000 cells/uL)
+LBXMPSI - Mean platelet volume (fL)
+LBXNRBC - Nucleated red blood cells
+
+# C-Reactive Protein
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/CRP_E.htm
+LBXCRP - C-reactive protein(mg/dL)
+
+# Ferritin
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L06TFR_C.htm
+LBDFERSI - Ferritin in SI unit (ug/L)
+
+# Glucose
+# https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/GLU_H.htm
+WTSAF2YR - Fasting Subsample 2 Year Mec Weight
+LBXGLU - Glucose, plasma (mg/dL)
+
+# Glycohemoglobin
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/GHB_E.htm
+LBXGH - Glycohemoglobin (%)
+
+# Iodine
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/UIO_E.htm
+URXUIO - Iodine, urine (ug/L)
+
+# Metals (Urine)
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L06HM_C.htm
+URXUCD - Cadmium, urine (ng/mL)
+URDUCDLC - Urinary cadmium comment code
+URXUBA - Barium, urine (ng/mL)
+URDUBALC - Urinary barium comment code
+URXUCO - Cobalt, urine (ng/mL)
+URDUCOLC - Urinary cobalt comment code
+URXUCS - Cesium, urine (ng/mL)
+URDUCSLC - Urinary cesium comment code
+URXUMO - Molybdenum, urine (ng/mL)
+URDUMOLC - Urinary molybdenum comment code
+URXUPB - Lead, urine (ng/mL)
+URDUPBLC - Urinary lead comment code
+URXUSB - Antimony, urine (ng/mL)
+URDUSBLC - Urinary antimony comment code
+URXUTL - Thallium, urine (ng/mL)
+URDUTLLC - Urinary thallium comment code
+URXUTU - Tungsten, urine (ng/mL)
+URDUTULC - Urinary tungsten comment code
+
+# Organophosphate Insecticides - Diakyl Phosphate Metabolites - Urine 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/OPD_D.htm
+URXOP1 - Dimethylphosphate result (ug/L)
+URDOP1LC - Dimethylphosphate comment code
+URXOP2 - Diethylphosphate (ug/L)
+URDOP2LC - Diethylphosphate comment code
+URXOP3 - Dimethylthiophosphate (ug/L)
+URDOP3LC - Dimethylthiophosphate comment code
+URXOP4 - Diethylthiophosphate (ug/L)
+URDOP4LC - Diethylthiophosphate comment code
+URXOP5 - Dimethyldithiophosphate (ug/L)
+URDOP5LC - Dimethyldithiophosphate comment code
+URXOP6 - Diethyldithiophosphate (ug/L)
+URDOP6LC - Diethyldithiophosphate comment code
+
+# Human Papillomavirus (HPV) DNA - Vaginal Swab: Digene Hybrid Capture & Roche Linear Array
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/HPVSWR_E.htm
+LBDRPCR - Roche HPV linear array summary result
+LBXH2RL - Digene HPV Swab High Risk RLU/CB
+LBXH3RL - Digene HPV Swab Low Risk RLU/CB
+LBDRHP - Roche LA high positive globin control
+LBDRLP - Roche LA low positive globin control
+
+# Volatile Organic Compounds - Trihalomethanes/MTBE/Nitromethane - Blood
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/VOCMWB_E.htm
+LBXVBF - Blood Bromoform (pg/mL)
+LBDVBFLC - Blood Bromoform Comment Code
+LBXVBM - Blood Bromodichloromethane (pg/mL)
+LBDVBMLC - Blood Bromodichloromethane Comment Code
+LBXVCF - Blood Chloroform (pg/mL)
+LBDVCFLC - Blood Chloroform Comment Code
+LBXVCM - Blood Dibromochloromethane (pg/mL)
+LBDVCMLC - Blood Dibromochloromethane Comment Code
+LBXVME - Blood MTBE (pg/mL)
+LBDVMELC - Blood MTBE Comment Code
+LBXNM - Blood Nitromethane (pg/mL)
+
+# Polyaromatic Hydrocarbons (PAHs) - Urine
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/PAH_E.htm
+URXP01 - 1-hydroxynaphthalene (ng/L)
+URDP01LC - 1-hydroxynaphthalene comment code
+URXP02 - 2-hydroxynaphthalene (ng/L)
+URDP02LC - 2-hydroxynaphthalene comment code
+URXP03 - 3-hydroxyfluorene (ng/L)
+URDP03LC - 3-hydroxyfluorene comment code
+URXP04 - 2-hydroxyfluorene (ng/L)
+URDP04LC - 2-hydroxyfluorene comment code
+URXP06 - 1-hydroxyphenanthrene (ng/L)
+URDP06LC - 1-hydroxyphenanthrene comment code
+URXP10 - 1-hydroxypyrene (ng/L)
+URDP10LC - 1-hydroxypyrene comment code
+
+# Phthalates and Plasticizers Metabolites - Urine
+# https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/PHTHTE_J.htm
+URXMBP - Mono-n-butyl phthalate (ng/mL)
+URXMEP - Mono-ethyl phthalate (ng/mL)
+URXMHP - Mono-(2-ethyl)-hexyl phthalate (ng/mL)
+URXMNP - Mono-isononyl phthalate (ng/mL)
+URXMZP - Mono-benzyl phthalate (ng/mL)
+
+# https://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/PERNT_G.htm
+# Perchlorate, Nitrate & Thiocyanate - Urine
+URXUP8 - Urinary perchlorate (ng/mL)
+URDUP8LC - Urinary perchlorate comment code
+URXNO3 - Urinary nitrate (ng/mL)
+URDNO3LC - Urinary nitrate comment code
+URXSCN - Urinary thiocyanate (ng/mL)
+URDSCNLC - Urinary thiocyanate comment code
+URXUCR - Urinary creatinine (mg/dL)
+
+# Arsenics - Urine
+# https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/UAS_H.htm
+URXUAS3 - Urinary Arsenous acid (ug/L)
+URDUA3LC - Urinary Arsenous acid comment code
+URXUAS5 - Urinary Arsenic acid (ug/L)
+URDUA5LC - Urinary Arsenic acid comment code
+URXUAB - Urinary Arsenobetaine (ug/L)
+URDUABLC - Urinary Arsenobetaine comment code
+URXUAC - Urinary Arsenocholine (ug/L)
+URDUACLC - Urinary Arsenocholine comment code
+URXUDMA - Urinary Dimethylarsinic acid (ug/L)
+URDUDALC - Urinary Dimethylarsinic acid comment cod
+URXUMMA - Urinary Monomethylacrsonic acid (ug/L)
+URDUMMAL - Urinary MMA acid comment code
+
+# Cadmium, Lead, & Total Mercury - Blood
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/PBCD_D.htm
+LBXBCD - Cadmium (ug/L)
+LBXBPB - Lead (ug/dL)
+LBXTHG - Mercury, total (ug/L)
+
+# Hepatitis A 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/HEPA_H.htm
+LBXHA - Hepatitis A antibody
+
+# Hepatitis B Surface Antibody
+# https://wwwn.cdc.gov/Nchs/Nhanes/1999-2000/L02HBS.htm
+LBXHBS - Hepatitis B Surface Antibody
+
+# Hepatitis C: Confirmed Antibody, RNA (HCV-RNA), & Genotype
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/HEPC_E.htm
+LBXHCR - Hepatitis C RNA (HCV-RNA)
+LBXHCG - Hepatitis C genotype
+
+# Cotinine
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/COT_D.htm
+LBXCOT - Cotinine (ng/mL)
+
+# Cholesterol - HDL
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/HDL_E.htm
+LBDHDD - Direct HDL-Cholesterol (mg/dL)
+
+# Cholesterol - LDL & Triglycerides
+# https://wwwn.cdc.gov/Nchs/Nhanes/2009-2010/TRIGLY_F.htm
+LBXTR - Triglyceride (mg/dL)
+LBDLDL - LDL-cholesterol (mg/dL)
+
+# Cholesterol - Total
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/TCHOL_E.htm
+LBXTC - Total Cholesterol (mg/dL)
+
+
