@@ -7,9 +7,6 @@ Year
 URXUMA - Albumin, urine (ug/mL)
 URXUCR - Creatinine, urine (mg/dL)
 
-# Arsenic
-# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/UAS_D.htm
-
 # Standard Biochemistry Profile
 # https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L40_C.htm
 LBXSATSI - Alanine aminotransferase ALT (U/L)
@@ -79,38 +76,23 @@ URXUIO - Iodine, urine (ug/L)
 # Metals (Urine)
 # https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/L06HM_C.htm
 URXUCD - Cadmium, urine (ng/mL)
-URDUCDLC - Urinary cadmium comment code
 URXUBA - Barium, urine (ng/mL)
-URDUBALC - Urinary barium comment code
 URXUCO - Cobalt, urine (ng/mL)
-URDUCOLC - Urinary cobalt comment code
 URXUCS - Cesium, urine (ng/mL)
-URDUCSLC - Urinary cesium comment code
 URXUMO - Molybdenum, urine (ng/mL)
-URDUMOLC - Urinary molybdenum comment code
 URXUPB - Lead, urine (ng/mL)
-URDUPBLC - Urinary lead comment code
 URXUSB - Antimony, urine (ng/mL)
-URDUSBLC - Urinary antimony comment code
 URXUTL - Thallium, urine (ng/mL)
-URDUTLLC - Urinary thallium comment code
 URXUTU - Tungsten, urine (ng/mL)
-URDUTULC - Urinary tungsten comment code
 
 # Organophosphate Insecticides - Diakyl Phosphate Metabolites - Urine 
 # https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/OPD_D.htm
 URXOP1 - Dimethylphosphate result (ug/L)
-URDOP1LC - Dimethylphosphate comment code
 URXOP2 - Diethylphosphate (ug/L)
-URDOP2LC - Diethylphosphate comment code
 URXOP3 - Dimethylthiophosphate (ug/L)
-URDOP3LC - Dimethylthiophosphate comment code
 URXOP4 - Diethylthiophosphate (ug/L)
-URDOP4LC - Diethylthiophosphate comment code
 URXOP5 - Dimethyldithiophosphate (ug/L)
-URDOP5LC - Dimethyldithiophosphate comment code
 URXOP6 - Diethyldithiophosphate (ug/L)
-URDOP6LC - Diethyldithiophosphate comment code
 
 # Human Papillomavirus (HPV) DNA - Vaginal Swab: Digene Hybrid Capture & Roche Linear Array
 # https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/HPVSWR_E.htm
@@ -123,31 +105,20 @@ LBDRLP - Roche LA low positive globin control
 # Volatile Organic Compounds - Trihalomethanes/MTBE/Nitromethane - Blood
 # https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/VOCMWB_E.htm
 LBXVBF - Blood Bromoform (pg/mL)
-LBDVBFLC - Blood Bromoform Comment Code
 LBXVBM - Blood Bromodichloromethane (pg/mL)
-LBDVBMLC - Blood Bromodichloromethane Comment Code
 LBXVCF - Blood Chloroform (pg/mL)
-LBDVCFLC - Blood Chloroform Comment Code
 LBXVCM - Blood Dibromochloromethane (pg/mL)
-LBDVCMLC - Blood Dibromochloromethane Comment Code
 LBXVME - Blood MTBE (pg/mL)
-LBDVMELC - Blood MTBE Comment Code
 LBXNM - Blood Nitromethane (pg/mL)
 
 # Polyaromatic Hydrocarbons (PAHs) - Urine
 # https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/PAH_E.htm
 URXP01 - 1-hydroxynaphthalene (ng/L)
-URDP01LC - 1-hydroxynaphthalene comment code
 URXP02 - 2-hydroxynaphthalene (ng/L)
-URDP02LC - 2-hydroxynaphthalene comment code
 URXP03 - 3-hydroxyfluorene (ng/L)
-URDP03LC - 3-hydroxyfluorene comment code
 URXP04 - 2-hydroxyfluorene (ng/L)
-URDP04LC - 2-hydroxyfluorene comment code
 URXP06 - 1-hydroxyphenanthrene (ng/L)
-URDP06LC - 1-hydroxyphenanthrene comment code
 URXP10 - 1-hydroxypyrene (ng/L)
-URDP10LC - 1-hydroxypyrene comment code
 
 # Phthalates and Plasticizers Metabolites - Urine
 # https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/PHTHTE_J.htm
@@ -160,27 +131,18 @@ URXMZP - Mono-benzyl phthalate (ng/mL)
 # https://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/PERNT_G.htm
 # Perchlorate, Nitrate & Thiocyanate - Urine
 URXUP8 - Urinary perchlorate (ng/mL)
-URDUP8LC - Urinary perchlorate comment code
 URXNO3 - Urinary nitrate (ng/mL)
-URDNO3LC - Urinary nitrate comment code
 URXSCN - Urinary thiocyanate (ng/mL)
-URDSCNLC - Urinary thiocyanate comment code
 URXUCR - Urinary creatinine (mg/dL)
 
 # Arsenics - Urine
 # https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/UAS_H.htm
 URXUAS3 - Urinary Arsenous acid (ug/L)
-URDUA3LC - Urinary Arsenous acid comment code
 URXUAS5 - Urinary Arsenic acid (ug/L)
-URDUA5LC - Urinary Arsenic acid comment code
 URXUAB - Urinary Arsenobetaine (ug/L)
-URDUABLC - Urinary Arsenobetaine comment code
 URXUAC - Urinary Arsenocholine (ug/L)
-URDUACLC - Urinary Arsenocholine comment code
 URXUDMA - Urinary Dimethylarsinic acid (ug/L)
-URDUDALC - Urinary Dimethylarsinic acid comment cod
 URXUMMA - Urinary Monomethylacrsonic acid (ug/L)
-URDUMMAL - Urinary MMA acid comment code
 
 # Cadmium, Lead, & Total Mercury - Blood
 # https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/PBCD_D.htm
@@ -217,5 +179,178 @@ LBDLDL - LDL-cholesterol (mg/dL)
 # Cholesterol - Total
 # https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/TCHOL_E.htm
 LBXTC - Total Cholesterol (mg/dL)
+
+
+#----------------------------------------------------------
+# Questionnaire subset 
+#----------------------------------------------------------
+
+# Weight History
+# https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/P_WHQ.htm
+WHD010 - Current self-reported height (inches)
+WHD020 - Current self-reported weight (pounds)
+WHQ030 - How do you consider your weight
+WHD050 - Self-reported weight - 1 yr ago (pounds)
+WHQ060 - Weight change intentional
+WHQ070 - Tried to lose weight in past year
+WHD080A - Ate less to lose weight
+WHD080B - Switched to foods with lower calories
+WHD080C - Ate less fat to lose weight
+WHD080D - Exercised to lose weight
+WHD080E - Skipped meals
+WHD080F - Ate diet foods or products
+WHD080G - Used a liquid diet formula
+WHD080H - Joined a weight loss program
+WHD080I - Took prescription diet pills
+WHD080J - Took non-RX suppl. to lose weight
+WHD080K - Took laxatives or vomited
+WHD080M - Drank a lot of water
+WHD080N - Followed a special diet
+WHD080O - Ate fewer carbohydrates
+WHD080P - Started to smoke or began to smoke again
+WHD080Q - Ate more fruits, vegetables, salads
+WHD080R - Changed eating habits
+WHD080S - Ate less sugar, candy, sweets
+WHD080T - Ate less junk food or fast food
+WHD080U - Had weight loss surgery to lose weight
+WHQ225 - Times lost 10 lbs or more to lose weight
+WHD110 - Self-reported weight-10 yrs ago (pounds)
+WHD120 - Self-reported weight-age 25 (pounds)
+WHD130 - Self-reported height - age 25 (inches)
+WHD140 - Self-reported greatest weight (pounds)
+WHQ150 - Age when heaviest weight
+
+# Housing Characteristics 
+# https://wwwn.cdc.gov/Nchs/Nhanes/1999-2000/HOQ.htm#HOQ065
+HOD050 - Number of rooms in home
+HOQ065 - Home owned, bought, rented, other
+
+# Income
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/INQ_E.htm
+INDFMMPI - Family monthly poverty level index
+
+# Smoking - Cigarette use
+# https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/SMQ_D.htm
+SMQ020 - Smoked at least 100 cigarettes in life
+SMD030 - Age started smoking cigarettes regularly
+SMQ040 - Do you now smoke cigarettes
+SMQ050Q - How long since quit smoking cigarettes
+SMQ050U - Unit of measure (day/week/month/year)
+SMD055 - Age last smoked cigarettes regularly
+SMD057 - # cigarettes smoked per day when quit
+SMD070 - # cigarettes smoked per day now
+SMD075 - How many years smoked this amount
+SMQ077 - How soon after waking do you smoke
+SMD641 - # days smoked cigs during past 30 days
+SMD650 - Avg # cigarettes/day during past 30 days
+SMD093 - May I please see the pack of cigarettes
+SMDUPCA - Cig 12-digit Universal Product Code-UPC
+SMD100BR - Cigarette Brand/sub-brand
+SMD100MN - Menthol indicator
+SMD100FL - Filter type
+SMD100LN - Length
+SMD100TR - FTC Tar Content
+SMD100CO - FTC Carbon Monoxide Content
+SMD100NI - FTC Nicotine Content
+SMQ620 - Ever tried cigarette smoking
+SMD630 - Age first smoked whole cigarette
+SMQ660 - Brands of cigarettes smoked/past mo
+SMQ664M - Menthol or non-menthol Marlboro
+SMQ664C - Menthol or non-menthol Camels
+SMQ664W - Menthol or non-menthol Winston
+SMQ664B - Menthol or non-menthol BensonHedges
+SMQ664O - Menthol or non-menthol other brand
+SMQ666M - Regular, light or ultralite Marlboro
+SMQ666C - Regular, light or ultralite Camels
+SMQ666K - Regular, light or ultralite Kools
+SMQ666W - Regular, light or ultralite Winston
+SMQ666B - Regular, light or ultralite BensonHedges
+SMQ666S - Regular, light or ultralite Salem
+SMQ666O - Regular, light or ultralite other brand
+SMQ670 - Tried to quit smoking
+
+# Smoking - Recent tobacco use
+# https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/P_SMQRTU.htm
+SMQ681 - Smoked tobacco last 5 days?
+SMQ690A - Used last 5 days - Cigarettes
+SMQ710 - # days smoked cigarettes last 5 days
+SMQ720 - # cigarettes smoked per day
+SMQ725 - When did resp. smoke last cigarette?
+SMQ690B - Used last 5 days - Pipes
+SMQ740 - # days smoked pipe over last 5 days
+SMQ690C - Used last 5 days - Cigars
+SMQ770 - # days smoked cigars over last 5 days
+SMQ690G - Used last 5 days - Hookah, water pipes
+SMQ845 - # days smoked water pipe last 5 days
+SMQ690H - Used last 5 days - E-cigarettes
+SMQ849 - # days smoked e-cigarette last 5 days
+SMQ851 - Used smokeless tobacco last 5 days?
+SMQ690D - Used last 5 days - Chewing tobacco
+SMQ800 - # days used chewing tobacco last 5 day
+SMQ690E - Used last 5 days - Snuff
+SMQ817 - # days used snuff over last 5 days
+SMQ690K - Used last 5 days - Other smokeless
+SMQ863 - Used nicotine replacement last 5 days?
+SMQ690F - Used last 5 days - Patch, gum, other
+SMQ830 - # days used nicotine quit smoking aids?
+SMDANY - Used any tobacco product last 5 days?
+
+# Alcohol use
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/ALQ_C.htm
+ALQ130 - Avg # alcoholic drinks/day -past 12 mos
+
+# Current Health Status
+# https://wwwn.cdc.gov/Nchs/Nhanes/2003-2004/HSQ_C.htm#HSQ590
+HSQ590 - Blood ever tested for HIV virus?
+
+# Mental Health - Depression Screener
+# https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DPQ_I.htm
+DPQ010 - Have little interest in doing things
+DPQ020 - Feeling down, depressed, or hopeless
+DPQ030 - Trouble sleeping or sleeping too much
+DPQ040 - Feeling tired or having little energy
+DPQ050 - Poor appetite or overeating
+DPQ060 - Feeling bad about yourself
+DPQ070 - Trouble concentrating on things
+DPQ080 - Moving or speaking slowly or too fast
+DPQ090 - Thought you would be better off dead
+DPQ100 - Difficulty these problems have caused
+
+# Sexual Behavior
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/SXQ_E.htm
+SXQ130 - #female sex partners/lifetime
+SXQ260 - Doctor ever told you had genital herpes
+SXQ265 - Doctor ever told you had genital warts
+SXQ270 - Doctor ever told you had gonorrhea
+SXQ272 - Doctor ever told you had chlamydia
+SXQ280 - Are you circumcised or uncircumcised
+
+# Pesticide Use
+# https://wwwn.cdc.gov/Nchs/Nhanes/2009-2010/PUQMEC_F.htm
+PUQ100 - Products used in home to control insects
+PUQ110 - Products used to kill weeds?
+
+# Reproductive Health 
+# https://wwwn.cdc.gov/Nchs/Nhanes/2007-2008/RHQ_E.htm
+RHQ010 - Age when first menstrual period occurred
+RHQ020 - Age range at first menstrual period
+RHQ060 - Age at last menstrual period
+RHQ070 - Age range at last menstrual period
+RHQ160 - How many times have been pregnant?
+RHQ200 - Now breastfeeding a child?
+RHD280 - Had a hysterectomy?
+RHQ540 - Ever use female hormones?
+RHQ554 - Use hormone pills w/estrogen only
+RHQ570 - Used estrogen/progestin combo pills
+
+# Volatile Toxicant
+# https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/VTQ_I.htm
+VTQ210 - Attached garage?
+VTQ200A - Store paints or fuels inside home?
+
+
+
+
+
 
 
