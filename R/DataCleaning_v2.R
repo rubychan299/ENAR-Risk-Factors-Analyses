@@ -155,7 +155,7 @@ for(i in seq_along(years)){
 names(labtables) <- years
 # Problematic - changed variable type, thus dropped: KID221	How old {were you/was SP} when {you were/he was} first told that {you/he} had prostate cancer?
 
-labtables <- remove_variable(labtables, "KID211")
+labtables <- remove_variable(labtables, "KID221")
 
 
 lab_dat <- combine_datasets(labtables, id, 'SEQN')
