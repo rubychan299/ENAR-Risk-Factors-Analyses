@@ -1,15 +1,7 @@
-# Support function
-select_variable <- function(survey_list, var_name) {
-  lapply(survey_list, function(year_list) {
-    lapply(year_list, function(df) {
-      if(var_name %in% names(df)) {
-        dplyr::select(df, sym(var_name))
-      } else {
-        df
-      }
-    })
-  })
-}
+
+source("R/funcs.R")
+
+# Load the Data
 
 load("data/cleaned/Dietary.RData")
 
@@ -26,3 +18,6 @@ divars <- readxl::read_excel("data/DietaryVars.xlsx",col_names = F)$`...1`
 divars <- sapply(divars, function(x) strsplit(x, " - ")[[1]][1])
 
 di_dat_cleaned <- select_variable(di_dat_new, divars)
+
+di_df <- combine_surveys(di_dat_cleaned)
+
