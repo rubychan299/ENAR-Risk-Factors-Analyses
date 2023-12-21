@@ -31,7 +31,7 @@ combine_surveys <- function(survey_list) {
   
   # Remove the base data frame from the list
   # Perform a full join of all data frames with the base data frame based on 'SEQN'
-  combined_df <- reduce(lapply(survey_list[-base_df_index], function(x){as.data.frame(x)}), full_join, by = "SEQN", .init = base_df)
+  combined_df <- reduce(lapply(survey_list[-base_df_index], function(x){as.data.frame(x)}), full_join, by = c("SEQN", "Year"), .init = base_df)
   
   return(combined_df)
 }
