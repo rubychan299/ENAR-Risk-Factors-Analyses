@@ -17,3 +17,5 @@ di_dat_cleaned <- select_variable(di_dat_new, divars)
 
 di_df <- combine_surveys(di_dat_cleaned)
 
+save(di_df, file = "data/cleaned/di_df.RData")
+
