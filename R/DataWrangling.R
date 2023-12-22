@@ -105,6 +105,22 @@ d <- d[d == T]
 # DBD050 
 # TRUE
 
+# keep LBDFERSI
+# remove bp_uncontrolled_140_90, htn_escesh, DRABF.y, DRDINT, BMIRECUM, BMXHEAD,
+# BMIHEAD, BPXCHR, LBDBMNLC, DBQ010, DBD030,DBD050
+# keep htn_jnc7
+
+# subset htn_accaha == 1(ppl with hypertension)
+
+# keep htn_resistant for now but come back later
+
+# drop all escesh, all uncontrolled,
+# drop LBDLDL, LBXTC, chol_total, chol_ldl_lt_70 (all other chol level vars)
+
+# keep only chol_ldl_5cat, chol_nonhdl_5cat, chol_hdl
+
+# outcomes: bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80
+
 ## Missing Imputation####
 
 ## remove vars with more than 50% missing

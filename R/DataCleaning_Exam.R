@@ -5,7 +5,7 @@ source("R/funcs.R")
 
 load("data/cleaned/Examinations.RData")
 
-exnames <- c("AUX", "BPX", "BMX", "CBC", "CRP")
+exnames <- c("AUX", "BPX", "BMX")
 
 ex_dat_new <- ex_dat[names(ex_dat) %in% exnames]
 
