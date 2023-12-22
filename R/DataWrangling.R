@@ -84,8 +84,8 @@ dat_full <- dat_full %>%
 # Keep only people with hypertension
 
 dat_full_hyp <- dat_full[dat_full$svy_subpop_htn == 1,]
-summary <- dfSummary(dat_full_hyp)
-view(summary)
+# summary <- dfSummary(dat_full_hyp)
+# view(summary)
 
 # Check duplicate
 d <- duplicated(t(dat_full_hyp))
@@ -109,6 +109,7 @@ d <- d[d == T]
 
 ## remove vars with more than 50% missing
 dat_hyp_cleaned <- dat_full_hyp %>% select(where(~mean(is.na(.)) < 0.5))
+dat_hyp_cleaned <- as.data.frame(dat_hyp_cleaned)
 
 ## perform mice with RF(fast?)
 set.seed(2024)
@@ -118,21 +119,35 @@ miceObj <- miceRanger(dat_hyp_cleaned, m=6, parallel = TRUE, verbose = FALSE)
 stopCluster(cl)
 registerDoSEQ()
 
+dat_hyp_cleaned <- completeData(miceObj)
+
 ## Data Transformation####
+continuous_vars <- sapply(dat_hyp_cleaned, is.numeric)
+categorical_vars <- !continuous_vars  # Assuming non-numeric are categorical
+
+preproc_values <- preProcess(dat_hyp_cleaned[, continuous_vars], method = c("center", "scale"))
+df_scaled <- predict(preproc_values, dat_hyp_cleaned[, continuous_vars])
+
+df_factor <- as.data.frame(lapply(dat_hyp_cleaned[, categorical_vars], as.factor))
+df_dummy <- dummyVars("~ .", data = df_factor)
+df_encoded <- predict(df_dummy, df_factor)
+
+dat_hyp_final <- cbind(df_scaled, df_encoded)
 
 
 ## Survey Design####
-dat_full_svy <- svydesign(
-  data = dat_full_hyp, 
+dat_hyp_svy <- svydesign(
+  data = dat_hyp_final, 
   ids = ~svy_psu,
   strata = ~svy_strata,
   weights = ~svy_weight_mec, 
   nest = T
 )
 
-weights <- weights(dat_full_svy)
+weights <- weights(dat_hyp_svy)
+
 ## Table 1####
-table1 <- tbl_svysummary(dat_full_svy,
+table1 <- tbl_svysummary(dat_hyp_svy,
                          by = "svy_year")
 
 table1 %>%
