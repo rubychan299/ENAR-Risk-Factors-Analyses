@@ -111,16 +111,22 @@ for(i in seq_along(years)){
   
   for(j in seq_along(dataset_names)){
     vars <- names(ditables[[i]][[j]])
-    ditables[[i]][[j]] <- nhanesTranslate(dataset_names[j], vars, data=ditables[[i]][[j]])
+    ditables.trans <- nhanesTranslate(dataset_names[j], vars, data=ditables[[i]][[j]])
+    
+    if(is.null(ditables.trans)) {
+      next
+    }
+    
+    ditables[[i]][[j]] <- ditables.trans
   }
 }
-names(ditables) <- years
+  names(ditables) <- years
 
 
 
 di_dat <- combine_datasets(ditables, id, 'SEQN')
 
-save(ditables, di_dat, file = "data/cleaned/Dietary.RData")
+save(ditables, di_dat, file = "data/cleaned/Dietary_trans.RData")
 
 ## Questionnaires ####
 qtables <- vector("list", length = length(years))
@@ -133,14 +139,20 @@ for(i in seq_along(years)){
   
   for(j in seq_along(dataset_names)){
     vars <- names(qtables[[i]][[j]])
-    qtables[[i]][[j]] <- nhanesTranslate(dataset_names[j], vars, data=qtables[[i]][[j]])
+    qtables.trans <- nhanesTranslate(dataset_names[j], vars, data=qtables[[i]][[j]])
+    
+    if(is.null(qtables.trans)) {
+      next
+    }
+    
+    qtables[[i]][[j]] <- qtables.trans
   }
 }
 names(qtables) <- years
 
 q_dat <- combine_datasets(qtables, id, 'SEQN')
 
-save(qtables, q_dat, file = "data/cleaned/Questionaires.RData")
+save(qtables, q_dat, file = "data/cleaned/Questionaires_trans.RData")
 
 ## Examinations ####
 extables <- vector("list", length = length(years))
@@ -153,7 +165,13 @@ for(i in seq_along(years)){
   
   for(j in seq_along(dataset_names)){
     vars <- names(extables[[i]][[j]])
-    extables[[i]][[j]] <- nhanesTranslate(dataset_names[j], vars, data=extables[[i]][[j]])
+    extables.trans <- nhanesTranslate(dataset_names[j], vars, data=extables[[i]][[j]])
+    
+    if(is.null(extables.trans)) {
+      next
+    }
+    
+    extables[[i]][[j]] <- extables.trans
   }
 }
 
@@ -161,7 +179,7 @@ names(extables) <- years
 
 ex_dat <- combine_datasets(extables, id, 'SEQN')
 
-save(extables, ex_dat, file = "data/cleaned/Examinations.RData")
+save(extables, ex_dat, file = "data/cleaned/Examinations_trans.RData")
 
 ## Laboratory ####
 labtables <- vector("list", length = length(years))
@@ -174,7 +192,13 @@ for(i in seq_along(years)){
   
   for(j in seq_along(dataset_names)){
     vars <- names(labtables[[i]][[j]])
-    labtables[[i]][[j]] <- nhanesTranslate(dataset_names[j], vars, data=labtables[[i]][[j]])
+    labtables.trans <- nhanesTranslate(dataset_names[j], vars, data=labtables[[i]][[j]])
+    
+    if(is.null(labtables.trans)) {
+      next
+    }
+    
+    labtables[[i]][[j]] <- labtables.trans
   }
 }
 
@@ -182,7 +206,7 @@ names(labtables) <- years
 
 lab_dat <- combine_datasets(labtables, id, 'SEQN')
 
-save(labtables, lab_dat, file = "data/cleaned/Laboratory.RData")
+save(labtables, lab_dat, file = "data/cleaned/Laboratory_trans.RData")
 
 ## Demographics ####
 demotables <- vector("list", length = length(years))
@@ -206,5 +230,5 @@ demotables <- remove_variable(demotables, "DMDHHSIZ")
 
 demo_dat <- combine_datasets(demotables, id, 'SEQN')
 
-save(demotables, demo_dat, file = "data/cleaned/Demographics.RData")
+save(demotables, demo_dat, file = "data/cleaned/Demographics_trans.RData")
 
