@@ -91,41 +91,27 @@ dat_full_hyp <- dat_full[dat_full$svy_subpop_htn == 1,]
 d <- duplicated(t(dat_full_hyp))
 d <- d[d == T]
 
-### discuss if need to remove:
-# bp_control_140_90 bp_uncontrolled_140_90               htn_jnc7 
-# TRUE                   TRUE                   TRUE 
-# htn_escesh                DRABF.y               DRDINT.y 
-# TRUE                   TRUE                   TRUE 
-# DRDINT.y.y               BMIRECUM                BMXHEAD 
-# TRUE                   TRUE                   TRUE 
-# BMIHEAD                 BPXCHR               LBDFERSI 
-# TRUE                   TRUE                   TRUE 
-# LBDBMNLC                 DBQ010                 DBD030 
-# TRUE                   TRUE                   TRUE 
-# DBD050 
-# TRUE
+# Drop variables and subset based on discussion
+dat_hyp <- dat_full_hyp[dat_full_hyp$htn_accaha == "Yes",]
 
-# keep LBDFERSI
-# remove bp_uncontrolled_140_90, htn_escesh, DRABF.y, DRDINT, BMIRECUM, BMXHEAD,
-# BMIHEAD, BPXCHR, LBDBMNLC, DBQ010, DBD030,DBD050
-# keep htn_jnc7
+chols <- c("chol_ldl_5cat", "chol_nonhdl_5cat", "chol_hdl")
 
-# subset htn_accaha == 1(ppl with hypertension)
-
-# keep htn_resistant for now but come back later
-
-# drop all escesh, all uncontrolled,
-# drop LBDLDL, LBXTC, chol_total, chol_ldl_lt_70 (all other chol level vars)
-
-# keep only chol_ldl_5cat, chol_nonhdl_5cat, chol_hdl
+dat_hyp <- dat_hyp %>% 
+  select(-contains("uncontrolled"), -contains("escesh"), -BMIRECUM,
+         -BMXHEAD, -BMIHEAD, -BPXCHR, -LBDBMNLC, -DBQ010, -DBD030, -DBD050, -LBDLDL, -LBXTC,
+         -chol_total, -chol_total_gteq_200,-chol_total_gteq_240, chol_hdl, -chol_hdl_low, 
+         -chol_trig, -chol_trig_gteq_150, -chol_ldl, -chol_ldl_lt_70, -chol_ldl_gteq_70,
+         -chol_ldl_gteq_190, -chol_nonhdl,-chol_nonhdl_lt_100, -chol_nonhdl_gteq_100, -chol_nonhdl_gteq_220)
 
 # outcomes: bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80
 
 ## Missing Imputation####
 
 ## remove vars with more than 50% missing
-dat_hyp_cleaned <- dat_full_hyp %>% select(where(~mean(is.na(.)) < 0.5))
+dat_hyp_cleaned <- dat_hyp %>% select(where(~mean(is.na(.)) < 0.5))
 dat_hyp_cleaned <- as.data.frame(dat_hyp_cleaned)
+
+# write.csv(dat_hyp_cleaned, "data/cleaned/dat_hyp_cleaned.csv", row.names=FALSE)
 
 ## perform mice with RF(fast?)
 set.seed(2024)

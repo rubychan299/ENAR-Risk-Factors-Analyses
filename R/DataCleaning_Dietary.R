@@ -5,7 +5,7 @@ source("R/funcs.R")
 
 load("data/cleaned/Dietary.RData")
 
-dinames <- c("DR1TOT","DR2TOT", "DSQ1", "DSQ2","DSQTOT","DS1TOT", "DS2TOT")
+dinames <- c("DSQ1", "DSQ2","DSQTOT","DS1TOT", "DS2TOT")
 
 di_dat_new <- di_dat[names(di_dat) %in% dinames]
 

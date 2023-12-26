@@ -95,7 +95,7 @@ remove_variable <- function(survey_list, var_name) {
 library(nhanesA)
 library(cardioStatsUSA)
 
-years <- c(1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 'P')
+years <- c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 'P')
 
 data(nhanes_data)
 id <- nhanes_data$svy_id

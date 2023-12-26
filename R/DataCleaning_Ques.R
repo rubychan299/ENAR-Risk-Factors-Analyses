@@ -11,7 +11,7 @@ quesnames <- c("ACQ","BPQ", "CDQ", "DEQ", "DIQ","DBQ","RXQ", "ECQ", "HIQ", "AUQ"
 
 ques_dat_new <- q_dat[names(q_dat) %in% quesnames]
 
-quesvars <- readxl::read_excel("data/QuestionaireVars.xlsx",col_names = F)$`...1`
+quesvars <- readxl::read_excel("data/QuestionaireVars.xlsx",col_names = F, sheet = "Sheet2")$`...1`
 quesvars <- sapply(quesvars, function(x) strsplit(x, " - ")[[1]][1])
 
 ques_dat_cleaned <- select_variable(ques_dat_new, quesvars)
