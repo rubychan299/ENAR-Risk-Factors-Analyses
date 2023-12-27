@@ -7,6 +7,7 @@ library(summarytools)
 library(miceRanger)
 library(doParallel)
 library(caret)
+library(mice)
 
 # Check Original Data####
 
@@ -114,22 +115,35 @@ dat_hyp_cleaned <- as.data.frame(dat_hyp_cleaned)
 # write.csv(dat_hyp_cleaned, "data/cleaned/dat_hyp_cleaned.csv", row.names=FALSE)
 
 ## perform mice with RF(fast?)
-set.seed(2024)
-cl <- makeCluster(4)
-registerDoParallel(cl)
-miceObj <- miceRanger(dat_hyp_cleaned, m=6, parallel = TRUE, verbose = FALSE)
-stopCluster(cl)
-registerDoSEQ()
+# set.seed(2024)
+# cl <- makeCluster(4)
+# registerDoParallel(cl)
+# miceObj <- miceRanger(dat_hyp_cleaned, m=6, parallel = TRUE, verbose = FALSE)
+# stopCluster(cl)
+# registerDoSEQ()
 
-dat_hyp_cleaned <- completeData(miceObj)
+# dat_hyp_cleaned <- completeData(miceObj)
 
+## switch to mice package
+miceObj <- mice(dat_hyp_cleaned, method = "cart")
+dat_hyp_mice <- complete(miceObj)
+
+save(dat_hyp_cleaned, miceObj,dat_hyp_mice, file = "data/cleaned/dat_hyp_cleaned_mice.RData")
 ## Data Transformation####
-continuous_vars <- sapply(dat_hyp_cleaned, is.numeric)
-categorical_vars <- !continuous_vars  # Assuming non-numeric are categorical
+
+# continuous_vars <- sapply(dat_hyp_cleaned, is.numeric)
+# categorical_vars <- !continuous_vars  # Assuming non-numeric are categorical
+
+# continuous_vars
+# DSDCOUNT.x DSDANCNT DR1EXMER DR1DAY DS1DSCNT DS1ANCNT BMXWT BMXHT BMXBMI BMXLEG BMXARML BMXARMC BMXWAIST BPXPLS BPXML1
+# BPXSY1 BPXDI1 BPXSY2 BPXDI2 BPXSY3 BPXDI3 LBXWBCSI LBXLYPCT LBXMOPCT LBXNEPCT LBXEOPCT
+# LBXBAPCT LBDLYMNO LBDMONO LBDNENO LBDEONO LBDBANO LBXRBCSI LBXHGB LBXHCT LBXMCVSI LBXMCHSI
+# LBXMC LBXRDW LBXPLTSI LBXMPSI LBDTCSI LBDHDD LBDHDDSI LBXGH URXUMA URXUMS URXUCR URXCRS
+# ALQ130 HOD050
 
 preproc_values <- preProcess(dat_hyp_cleaned[, continuous_vars], method = c("center", "scale"))
 df_scaled <- predict(preproc_values, dat_hyp_cleaned[, continuous_vars])
-
+ 
 df_factor <- as.data.frame(lapply(dat_hyp_cleaned[, categorical_vars], as.factor))
 df_dummy <- dummyVars("~ .", data = df_factor)
 df_encoded <- predict(df_dummy, df_factor)
