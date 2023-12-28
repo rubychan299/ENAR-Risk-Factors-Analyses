@@ -128,27 +128,41 @@ dat_hyp_cleaned <- as.data.frame(dat_hyp_cleaned)
 miceObj <- mice(dat_hyp_cleaned, method = "cart")
 dat_hyp_mice <- complete(miceObj)
 
-save(dat_hyp_cleaned, miceObj,dat_hyp_mice, file = "data/cleaned/dat_hyp_cleaned_mice.RData")
+
+# save(dat_hyp_cleaned, miceObj,dat_hyp_mice, file = "data/cleaned/dat_hyp_cleaned_mice.RData")
+load("data/cleaned/dat_hyp_cleaned_mice.RData")
+
+summary_mice <- dfSummary(dat_hyp_mice)
+view(summary_mice)
 ## Data Transformation####
 
 # continuous_vars <- sapply(dat_hyp_cleaned, is.numeric)
 # categorical_vars <- !continuous_vars  # Assuming non-numeric are categorical
 
-# continuous_vars
-# DSDCOUNT.x DSDANCNT DR1EXMER DR1DAY DS1DSCNT DS1ANCNT BMXWT BMXHT BMXBMI BMXLEG BMXARML BMXARMC BMXWAIST BPXPLS BPXML1
-# BPXSY1 BPXDI1 BPXSY2 BPXDI2 BPXSY3 BPXDI3 LBXWBCSI LBXLYPCT LBXMOPCT LBXNEPCT LBXEOPCT
-# LBXBAPCT LBDLYMNO LBDMONO LBDNENO LBDEONO LBDBANO LBXRBCSI LBXHGB LBXHCT LBXMCVSI LBXMCHSI
-# LBXMC LBXRDW LBXPLTSI LBXMPSI LBDTCSI LBDHDD LBDHDDSI LBXGH URXUMA URXUMS URXUCR URXCRS
-# ALQ130 HOD050
+`%notin%` <- Negate(`%in%`)
 
-preproc_values <- preProcess(dat_hyp_cleaned[, continuous_vars], method = c("center", "scale"))
-df_scaled <- predict(preproc_values, dat_hyp_cleaned[, continuous_vars])
- 
-df_factor <- as.data.frame(lapply(dat_hyp_cleaned[, categorical_vars], as.factor))
-df_dummy <- dummyVars("~ .", data = df_factor)
-df_encoded <- predict(df_dummy, df_factor)
+continuous_vars <- dat_hyp_mice %>% select(demo_age_years, bp_sys_mean, bp_dia_mean, DSDCOUNT.x, DSDANCNT, DR1EXMER, DR1DAY, DS1DSCNT, DS1ANCNT, 
+                                           BMXWT, BMXHT, BMXBMI, BMXLEG, BMXARML, BMXARMC, BMXWAIST, BPXPLS,
+                                           BPXML1,BPXSY1, BPXDI1, BPXSY2, BPXDI2, BPXSY3, BPXDI3, LBXWBCSI,
+                                           LBXLYPCT, LBXMOPCT, LBXNEPCT, LBXEOPCT, LBXBAPCT, LBDLYMNO, 
+                                           LBDMONO, LBDNENO, LBDEONO, LBDBANO, LBXRBCSI, LBXHGB, LBXHCT,
+                                           LBXMCVSI, LBXMCHSI, LBXMC, LBXRDW, LBXPLTSI, LBXMPSI, LBDTCSI,
+                                           LBDHDD, LBDHDDSI, LBXGH, URXUMA, URXUMS, URXUCR, URXCRS,ALQ130,
+                                           HOD050, WHD010, WHD020, WHD050, WHD110, WHD120, WHD130, WHD140)
+categorical_vars <- as.data.frame(lapply(dat_hyp_mice[names(dat_hyp_mice) %notin% names(continuous_vars)], as.factor))
 
-dat_hyp_final <- cbind(df_scaled, df_encoded)
+preproc_values <- preProcess(continuous_vars, method = c("center", "scale"))
+df_scaled <- predict(preproc_values, continuous_vars)
+
+svy_var <- dat_hyp_mice %>% select(SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year)
+
+categorical_vars <- categorical_vars %>% select(-svy_subpop_htn, -htn_accaha, -htn_jnc7,
+                                                -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year)
+
+df_dummy <- dummyVars("~ .", data = categorical_vars)
+df_encoded <- predict(df_dummy, categorical_vars)
+
+dat_hyp_final <- cbind(svy_var, df_scaled, df_encoded)
 
 
 ## Survey Design####
@@ -162,10 +176,4 @@ dat_hyp_svy <- svydesign(
 
 weights <- weights(dat_hyp_svy)
 
-## Table 1####
-table1 <- tbl_svysummary(dat_hyp_svy,
-                         by = "svy_year")
-
-table1 %>%
-  as_gt() %>%
-  gt::gtsave(filename = "tables/table1_byyrs_full.html")
+save(dat_hyp_cleaned, dat_hyp_mice, dat_hyp_final,dat_hyp_svy,weights, file = "data/cleaned/dat_hyp_final_svy.RData")
