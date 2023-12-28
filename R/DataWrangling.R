@@ -132,8 +132,8 @@ dat_hyp_mice <- complete(miceObj)
 # save(dat_hyp_cleaned, miceObj,dat_hyp_mice, file = "data/cleaned/dat_hyp_cleaned_mice.RData")
 load("data/cleaned/dat_hyp_cleaned_mice.RData")
 
-summary_mice <- dfSummary(dat_hyp_mice)
-view(summary_mice)
+# summary_mice <- dfSummary(dat_hyp_mice)
+# view(summary_mice)
 ## Data Transformation####
 
 # continuous_vars <- sapply(dat_hyp_cleaned, is.numeric)
@@ -154,10 +154,11 @@ categorical_vars <- as.data.frame(lapply(dat_hyp_mice[names(dat_hyp_mice) %notin
 preproc_values <- preProcess(continuous_vars, method = c("center", "scale"))
 df_scaled <- predict(preproc_values, continuous_vars)
 
-svy_var <- dat_hyp_mice %>% select(SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year)
+svy_var <- dat_hyp_mice %>% select(SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year, bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)
 
 categorical_vars <- categorical_vars %>% select(-svy_subpop_htn, -htn_accaha, -htn_jnc7,
-                                                -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year)
+                                                -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+                                                -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80)
 
 df_dummy <- dummyVars("~ .", data = categorical_vars)
 df_encoded <- predict(df_dummy, categorical_vars)
