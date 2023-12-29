@@ -1,0 +1,963 @@
+load("dat_hyp_final_svy.RData")
+# Install and load required packages
+install.packages("data.table")
+install.packages("survey")
+install.packages("glmnet")
+install.packages("dplyr")
+install.packages("pROC")
+
+
+library(pROC)
+library(data.table)
+library(survey)
+library(caret)
+library(glmnet)
+library(dplyr)
+
+
+# load the data
+
+load("dat_hyp_final_svy.RData")
+
+# Rename the variables
+names(dat_hyp_final) <- gsub(" ", "", names(dat_hyp_final))
+names(dat_hyp_final) <- gsub("\\.", "_", names(dat_hyp_final))
+names(dat_hyp_final) <- gsub("\\+", "plus", names(dat_hyp_final))
+names(dat_hyp_final) <- gsub("\\-", "plus", names(dat_hyp_final))
+names(dat_hyp_final) <- gsub(">", "", names(dat_hyp_final))
+names(dat_hyp_final) <- gsub("<", "", names(dat_hyp_final))
+
+# Drop problematic vars
+exclude_vars <- c('DSD010_x', 'DRDINT_x', 'DRDINT_y', 'LBDHDDSI', 'URXUMS', 'URXCRS', 'BPQ050A', 'cc_cvd_stroke', 'svy_subpop_chol')
+dat_hyp_final <- dat_hyp_mice %>% select(-one_of(exclude_vars))
+
+# Change the outcomes to numeric
+outcome_vars <- c("bp_control_jnc7", "bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+dat_hyp_final <- mutate(dat_hyp_final, across(all_of(outcome_vars), as.numeric))
+
+# Subset the data into pre-2013 and post-2013
+dat_hyp_final_pre <- filter(dat_hyp_final, svy_year %in% c("2003-2004", "2005-2006", "2007-2008", "2009-2010", "2011-2012"))
+dat_hyp_final_post <- filter(dat_hyp_final, svy_year %in% c("2013-2014", "2015-2016", "2017-2020"))
+
+survey_design <- svydesign(ids = ~svy_psu, strata = ~svy_strata, weights = ~svy_weight_mec, nest = TRUE, data = dat_hyp_final_pre)
+
+
+
+# time period variable (before_2013, after_2013), and all other predictor variables
+
+#outcome1 before 2013
+outcome <- dat_hyp_final_pre$bp_control_jnc7
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_pre[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+#outcome1 after 2013
+outcome <- dat_hyp_final_post$bp_control_jnc7
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_post[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+#outcome1 overall
+outcome <- dat_hyp_final$bp_control_jnc7
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+#outcome2 before 2013
+outcome <- dat_hyp_final_pre$bp_control_accaha
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_pre[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+#outcome2 after 2013
+outcome <- dat_hyp_final_post$bp_control_accaha
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_post[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+#outcome2 overall
+outcome <- dat_hyp_final$bp_control_accaha
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+#outcome3 before 2013
+outcome <- dat_hyp_final_pre$bp_control_140_90
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_pre[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+#outcome3 after 2013
+outcome <- dat_hyp_final_post$bp_control_140_90
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_post[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+
+#outcome3 overall
+outcome <- dat_hyp_final$bp_control_140_90
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+#outcome4 before 2013
+outcome <- dat_hyp_final_pre$bp_control_130_80
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_pre[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+#outcome4 after 2013
+outcome <- dat_hyp_final_post$bp_control_130_80
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final_post[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+
+#outcome4 overall
+outcome <- dat_hyp_final$bp_control_130_80
+#outcome <- predictors$bp_control_jnc7
+
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+predictors <- dat_hyp_final[, setdiff(names(dat_hyp_final_pre), columns_to_exclude)]
+
+
+# Remove rows with missing values
+complete_cases <- complete.cases(predictors, outcome)
+predictors <- predictors[complete_cases, ]
+outcome <- outcome[complete_cases]
+
+
+
+
+lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 0.5, weights = predictors$svy_weight_mec)
+best_lambda <- lasso_model$lambda.min
+
+lasso_coef <- coef(lasso_model, s = best_lambda)
+
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Specify the columns to exclude
+exclude_columns <- c(
+  "SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year",
+  "bp_control_jnc7",
+  "bp_control_accaha",
+  "bp_control_140_90",
+  "bp_control_130_80"
+)
+
+# Exclude specified columns from predictors
+predictors_subset <- predictors[, !colnames(predictors) %in% exclude_columns]
+
+# Fit the lasso model
+lasso_model <- cv.glmnet(as.matrix(predictors_subset), outcome, family = "binomial", alpha = 1, weights = predictors$svy_weight_mec)
+
+# Print selected features
+lasso_coef <- coef(lasso_model, s = lasso_model$lambda.min)
+selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+print(selected_features)
+
+
+# Function to extract feature importance
+get_feature_importance <- function(lasso_model, best_lambda) {
+  importance <- coef(lasso_model, s = best_lambda)
+  importance
+}
+
+# Call the function
+importance_result <- get_feature_importance(lasso_model, best_lambda)
+print(importance_result)
+
+
+library(ggplot2)
+
+# Create a data frame with feature names and coefficients
+coef_df <- data.frame(feature = rownames(lasso_coef), coefficient = lasso_coef[, 1])
+
+# Select the top N features
+top_n <- 10
+top_coef_df <- coef_df[order(abs(coef_df$coefficient), decreasing = TRUE)[1:top_n], ]
+
+# Create a bar plot
+ggplot(top_coef_df, aes(x = reorder(feature, -coefficient), y = coefficient)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  coord_flip() +  # Flip axes for better readability
+  labs(title = "Top 10 LASSO Coefficients", x = "Coefficient", y = "Value") +
+  theme_minimal()
