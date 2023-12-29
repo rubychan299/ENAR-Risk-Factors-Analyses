@@ -165,6 +165,9 @@ df_encoded <- predict(df_dummy, categorical_vars)
 
 dat_hyp_final <- cbind(svy_var, df_scaled, df_encoded)
 
+save(dat_hyp_final,df_scaled,df_encoded, file = "data/cleaned/dat_hyp_final_scaled.RData")
+
+
 
 ## Survey Design####
 dat_hyp_svy <- svydesign(
