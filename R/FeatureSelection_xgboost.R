@@ -37,19 +37,31 @@ dat_hyp_final_post <- dat_hyp_final %>%
 dat_hyp_final <- dat_hyp_final %>% 
   filter(svy_year != "1999-2000" | svy_year == "2001-2002")
 
-# split into 70% training and 30% testing
+# split into 80% training and 20% testing
 set.seed(2024)
-dat_hyp_final_pre_ind <- sample(1:nrow(dat_hyp_final_pre), 0.7*nrow(dat_hyp_final_pre))
+dat_hyp_final_pre_ind <- sample(1:nrow(dat_hyp_final_pre), 0.8*nrow(dat_hyp_final_pre))
 dat_hyp_final_pre_train <- dat_hyp_final_pre[dat_hyp_final_pre_ind, ]
 dat_hyp_final_pre_test <- dat_hyp_final_pre[-dat_hyp_final_pre_ind, ]
 
-dat_hyp_final_post_ind <- sample(1:nrow(dat_hyp_final_post), 0.7*nrow(dat_hyp_final_post))
+dat_hyp_final_post_ind <- sample(1:nrow(dat_hyp_final_post), 0.8*nrow(dat_hyp_final_post))
 dat_hyp_final_post_train <- dat_hyp_final_post[dat_hyp_final_post_ind, ]
 dat_hyp_final_post_test <- dat_hyp_final_post[-dat_hyp_final_post_ind, ]
 
-dat_hyp_final_ind <- sample(1:nrow(dat_hyp_final), 0.7*nrow(dat_hyp_final))
+dat_hyp_final_ind <- sample(1:nrow(dat_hyp_final), 0.8*nrow(dat_hyp_final))
 dat_hyp_final_train <- dat_hyp_final[dat_hyp_final_ind, ]
 dat_hyp_final_test <- dat_hyp_final[-dat_hyp_final_ind, ]
+
+# Perform resampling to create multiple training sets
+
+num_replicates <- 10  
+dat_hyp_final_pre_samp <- dat_hyp_final_post_samp <- dat_hyp_final_samp <- list()
+
+for (i in 1:num_replicates) {
+  dat_hyp_final_pre_samp[[i]] <- dat_hyp_final_pre_train[sample(1:nrow(dat_hyp_final_pre_train), replace = TRUE), ]
+  dat_hyp_final_post_samp[[i]] <- dat_hyp_final_post_train[sample(1:nrow(dat_hyp_final_post_train), replace = TRUE), ]
+  dat_hyp_final_samp[[i]] <- dat_hyp_final_train[sample(1:nrow(dat_hyp_final_train), replace = TRUE), ]
+}
+
 
 # outcomes: bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80
 
