@@ -1,5 +1,10 @@
+library(tidyverse)
 library(rpms)
 library(xgboost)
+library(rBayesianOptimization)
+library(caret)
+
+# Data Manipulation####
 
 # load the data
 
@@ -31,44 +36,43 @@ dat_hyp_final <- dat_hyp_final %>%
 
 dat_hyp_final_pre <- dat_hyp_final %>% 
   filter(svy_year == "2003-2004" | svy_year == "2005-2006" | svy_year == "2007-2008" | svy_year == "2009-2010" | svy_year == "2011-2012")
-dat_hyp_final_pre <- dat_hyp_final[dat_hyp_final$svy_year == "2003-2004"| dat_hyp_final$svy_year == "2005-2006" | dat_hyp_final$svy_year == "2007-2008" | dat_hyp_final$svy_year == "2009-2010" | dat_hyp_final$svy_year == "2011-2012",]
 
 dat_hyp_final_post <- dat_hyp_final %>% 
   filter(svy_year == "2013-2014" | svy_year == "2015-2016" | svy_year == "2017-2020")
-dat_hyp_final_post <- dat_hyp_final[dat_hyp_final$svy_year == "2013-2014"| dat_hyp_final$svy_year == "2015-2016" | dat_hyp_final$svy_year == "2017-2020",]
-
 
 dat_hyp_final <- dat_hyp_final %>% 
   filter(svy_year != "1999-2000" | svy_year == "2001-2002")
 
-write.csv(dat_hyp_final, "data/cleaned/dat_hyp_final.csv", row.names=FALSE)
+# split into 70% training and 30% testing
+set.seed(2024)
+dat_hyp_final_pre_ind <- sample(1:nrow(dat_hyp_final_pre), 0.7*nrow(dat_hyp_final_pre))
+dat_hyp_final_pre_train <- dat_hyp_final_pre[dat_hyp_final_pre_ind, ]
+dat_hyp_final_pre_test <- dat_hyp_final_pre[-dat_hyp_final_pre_ind, ]
+
+dat_hyp_final_post_ind <- sample(1:nrow(dat_hyp_final_post), 0.7*nrow(dat_hyp_final_post))
+dat_hyp_final_post_train <- dat_hyp_final_post[dat_hyp_final_post_ind, ]
+dat_hyp_final_post_test <- dat_hyp_final_post[-dat_hyp_final_post_ind, ]
+
+dat_hyp_final_ind <- sample(1:nrow(dat_hyp_final), 0.7*nrow(dat_hyp_final))
+dat_hyp_final_train <- dat_hyp_final_pre[dat_hyp_final_ind, ]
+dat_hyp_final_test <- dat_hyp_final_pre[-dat_hyp_final_ind, ]
 
 # outcomes: bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80
 
-# Gradient Boosting
+# Gradient Boosting####
+
+## Outcome 1: bp_control_jnc7####
 `%notin%` <- Negate(`%in%`)
 
+# rpms (doesn't really work) 
 # Create the formula string
-vars1 <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")]
-formula_str <- paste("bp_control_jnc7 ~", paste(vars1, collapse = " + "))
-
-# Convert to formula
-formula_obj <- as.formula(formula_str)
+vars <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")]
+# formula_str <- paste("bp_control_jnc7 ~", paste(vars1, collapse = " + "))
+# 
+# # Convert to formula
+# formula_obj <- as.formula(formula_str)
 
 # Use in rpms_boost
-xgb1 <- rpms_boost(formula_obj, data = dat_hyp_final, strata = ~svy_strata,
-                   weights = ~svy_weight_mec, pval=.01)
-
-# Extract feature importance
-importance_matrix <- xgb.importance(feature_names = vars1, model = xgb1)
-print(importance_matrix)
-
-# Plot feature importance
-xgb.plot.importance(importance_matrix)
-
-
-
-vars2 <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_year", "bp_control_jnc7", "bp_control_140_90", "bp_control_130_80")]
-vars3 <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_year", "bp_control_jnc7", "bp_control_accaha", "bp_control_130_80")]
-vars4 <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_year", "bp_control_jnc7", "bp_control_accaha", "bp_control_140_90")]
+# xgb1 <- rpms_boost(formula_obj, data = dat_hyp_final, strata = ~svy_strata,
+#                    weights = ~svy_weight_mec, pval=.01)
 
