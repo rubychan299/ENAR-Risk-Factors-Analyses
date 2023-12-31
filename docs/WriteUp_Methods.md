@@ -6,13 +6,11 @@ We used the BP and cholesterol variables from the package `cardioStatsUSA`. For 
 
 ## Data PreProcessing
 
-### Recoding
-
 ### Missing Imputations
+We dropped variables with more than 50% of missingness and performed multiple imputation with CART(Classification and Regressio Trees) regressor to obtain the complete dataset.
 
 ### Standardization
-
-### Data Imbalance
+Continuous variables 
 
 ### Survey Weight
 
@@ -28,13 +26,9 @@ For all algorithms below we used a three stage approach:
 
 ### Logistic Regression/Linear Regression with LASSO
 
-### Stepwise backward elimination
-
-### Naive Bayes
-
-### KNN
-
 ### Random Forest
+
+### XGBoost
 
 ### TabNet
 
@@ -45,3 +39,7 @@ within each of the algorithms and between
 three rank lists for each of the methods
 
 ## Model buidling
+
+
+
+### Stepwise backward elimination

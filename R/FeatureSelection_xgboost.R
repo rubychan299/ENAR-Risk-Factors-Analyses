@@ -4,280 +4,205 @@ library(rpms)
 library(xgboost)
 library(rBayesianOptimization)
 library(caret)
-
-# Data Manipulation####
+library(purrr)
 
 # load the data
 
-load("data/cleaned/dat_hyp_final_svy.RData")
-
-# Rename the variables by removing spaces
-names(dat_hyp_final) <- gsub(" ", "", names(dat_hyp_final))
-# Replace spaces, periods, and plus signs with underscores
-names(dat_hyp_final) <- gsub(" ", "_", names(dat_hyp_final))
-names(dat_hyp_final) <- gsub("\\.", "_", names(dat_hyp_final))
-names(dat_hyp_final) <- gsub("\\+", "plus", names(dat_hyp_final))
-names(dat_hyp_final) <- gsub("\\-", "plus", names(dat_hyp_final))
-names(dat_hyp_final) <- gsub(">", "", names(dat_hyp_final))
-names(dat_hyp_final) <- gsub("<", "", names(dat_hyp_final))
-
-# Drop probelmatic vars
-dat_hyp_final <- dat_hyp_final %>% 
-  select(-contains("DSD010_x"), -contains("DRDINT_x"), -contains("DRDINT_y"), -LBDHDDSI,
-         -URXUMS, -URXCRS, -contains("BPQ050A"), -contains("cc_cvd_stroke"), -contains("svy_subpop_chol"))
-
-# subset the data into pre 2013 and post 2013
-
-dat_hyp_final_pre <- dat_hyp_final %>% 
-  filter(svy_year == "2003-2004" | svy_year == "2005-2006" | svy_year == "2007-2008" | svy_year == "2009-2010" | svy_year == "2011-2012")
-
-dat_hyp_final_post <- dat_hyp_final %>% 
-  filter(svy_year == "2013-2014" | svy_year == "2015-2016" | svy_year == "2017-2020")
-
-dat_hyp_final <- dat_hyp_final %>% 
-  filter(svy_year != "1999-2000" | svy_year == "2001-2002")
-
-# split into 80% training and 20% testing
-set.seed(2024)
-dat_hyp_final_pre_ind <- sample(1:nrow(dat_hyp_final_pre), 0.8*nrow(dat_hyp_final_pre))
-dat_hyp_final_pre_train <- dat_hyp_final_pre[dat_hyp_final_pre_ind, ]
-dat_hyp_final_pre_test <- dat_hyp_final_pre[-dat_hyp_final_pre_ind, ]
-
-dat_hyp_final_post_ind <- sample(1:nrow(dat_hyp_final_post), 0.8*nrow(dat_hyp_final_post))
-dat_hyp_final_post_train <- dat_hyp_final_post[dat_hyp_final_post_ind, ]
-dat_hyp_final_post_test <- dat_hyp_final_post[-dat_hyp_final_post_ind, ]
-
-dat_hyp_final_ind <- sample(1:nrow(dat_hyp_final), 0.8*nrow(dat_hyp_final))
-dat_hyp_final_train <- dat_hyp_final[dat_hyp_final_ind, ]
-dat_hyp_final_test <- dat_hyp_final[-dat_hyp_final_ind, ]
-
-# Perform resampling to create multiple training sets
-
-num_replicates <- 10  
-dat_hyp_final_pre_samp <- dat_hyp_final_post_samp <- dat_hyp_final_samp <- list()
-
-for (i in 1:num_replicates) {
-  dat_hyp_final_pre_samp[[i]] <- dat_hyp_final_pre_train[sample(1:nrow(dat_hyp_final_pre_train), replace = TRUE), ]
-  dat_hyp_final_post_samp[[i]] <- dat_hyp_final_post_train[sample(1:nrow(dat_hyp_final_post_train), replace = TRUE), ]
-  dat_hyp_final_samp[[i]] <- dat_hyp_final_train[sample(1:nrow(dat_hyp_final_train), replace = TRUE), ]
-}
-
+load("data/cleaned/dat_train_test_bootstrapped.RData")
 
 # outcomes: bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80
 
 # Gradient Boosting####
 
-## Outcome 1: bp_control_jnc7####
+## functions####
+
 `%notin%` <- Negate(`%in%`)
 
 vars <- names(dat_hyp_final)[names(dat_hyp_final) %notin% c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata","svy_year", "bp_control_jnc7","bp_control_accaha", "bp_control_140_90", "bp_control_130_80")]
+outcome <- c("bp_control_jnc7", "bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+
+xgboost_rank <- function(outcome, train_data, weight, test_data){
+  xgb_df <- as.matrix(train_data[names(train_data) %in% vars])
+  xgb_label <- as.numeric(factor(train_data[,outcome], levels = c("No", "Yes"))) - 1
+  xgb_matrix <- xgb.DMatrix(data = xgb_df, label = xgb_label)
+  xgb <- xgboost(data = xgb_matrix, nrounds = 100, eta = 0.1, weight = weight)
+  
+  xgb_importance <- xgb.importance(feature_names = vars, model = xgb)
+  rankimp <- arrange(xgb_importance,desc(Frequency))
+  
+  output <- list(xgb = xgb,rankimp = rankimp)
+  return(output)
+}
+
+xgboost_eval <- function(outcome, train_data, weight, test_data){
+  
+  # Fit the xgboost model
+  model <- xgboost_rank(outcome,train_data, weight)$xgb
+  
+  # Compute Confusion Matrix
+  test_df <- as.matrix(test_data[names(test_data) %in% vars])
+  test_label <- as.numeric(factor(test_data[,outcome], levels = c("No", "Yes"))) - 1
+  test_matrix <- xgb.DMatrix(data = test_df, label = test_label)
+  predictions <- predict(model, newdata = test_matrix)
+  predicted_labels <- as.factor(ifelse(predictions > 0.5, 1, 0))
+  
+  confusionMatrix <- confusionMatrix(as.factor(predicted_labels), as.factor(test_label))
+  precision <- confusionMatrix$byClass["Pos Pred Value"]
+  recall <- confusionMatrix$byClass["Sensitivity"]
+  f1_scores <- 2 * (precision * recall) / (precision + recall)
+  
+  # Computing weighted F1 score
+  class_sizes <- table(test_label)
+  weights <- class_sizes / sum(class_sizes)
+  weighted_f1 <- sum(f1_scores * weights, na.rm = TRUE)
+  
+  output <- list(model = model,weighted_f1 = weighted_f1)
+  return(output)
+}
+
+xgboost_rank_samp <- function(outcome, data_bootstrapped, weight){
+  
+  model <- vector("list", length = length(data_bootstrapped))
+  feature_list <- vector("list", length = length(data_bootstrapped))
+  mean_rankimp <- NULL
+  
+  # Fit the xgboost model
+  for(i in 1:length(data_bootstrapped)){
+    train_data <- data_bootstrapped[[i]]
+    fit <- xgboost_rank(outcome,train_data, weight)
+    model[[i]] <- fit$xgb
+    feature_list[[i]] <- fit$rankimp
+  }
+  
+  features <- purrr::map(feature_list, ~ .x %>% dplyr::select(Feature) %>% unique())
+  features_table <- dplyr::bind_rows(features, .id = "DataFrame") %>%
+    dplyr::count(Feature) %>%
+    dplyr::filter(n >= 2)
+  
+  feature_list <- purrr::map(feature_list, ~ .x %>%
+                                       dplyr::filter(Feature %in% features_table$Feature))
+  
+  mean_rankimp <- feature_list %>% 
+    purrr::reduce(dplyr::bind_rows) %>%
+    dplyr::group_by(Feature) %>% 
+    summarise(across(everything(), list(mean = ~mean(.x, na.rm = TRUE), 
+                                        sd = ~sd(.x, na.rm = TRUE)))) %>% 
+    arrange(desc(Frequency_mean))
+  
+  output <- list(model = model,mean_rankimp = mean_rankimp)
+  return(output)
+}
+
+## Outcome 1: bp_control_jnc7####
 
 ### Pre 2013####
-xgb1_df <- as.matrix(dat_hyp_final_pre_train[names(dat_hyp_final_pre_train) %in% vars])
-xgb1_label <- dat_hyp_final_pre_train$bp_control_jnc7
-xgb1_matrix <- xgb.DMatrix(data = xgb1_df, label = xgb1_label)
-xgb1 <- xgboost(data = xgb1_matrix, nrounds = 100, eta = 0.1, weight = weights)
+pre2013_bp_control_jnc7 <- xgboost_eval("bp_control_jnc7",dat_hyp_final_pre_train, "svy_weight_mec",dat_hyp_final_pre_test)
 
-# Hyperparameter Tuning
-# tune_grid <- expand.grid(nrounds = c(100, 200),
-#                          eta = c(0.01, 0.05, 0.1),
-#                          max_depth = c(3, 6, 9),
-#                          gamma = c(0, 0.1, 0.2),
-#                          min_child_weight = c(1, 6),
-#                          subsample = c(0.5, 1),
-#                          colsample_bytree = c(0.5, 1))
-# control <- trainControl(method = "cv", number = 5)
-# tuned_model <- caret::train(xgb1_df, factor(xgb1_label), method = "xgbTree",
-#                      trControl = control, tuneGrid = tune_grid, weights = weights)
+pre2013_bp_control_jnc7_samp <- xgboost_rank_samp("bp_control_jnc7",dat_hyp_final_pre_samp, "svy_weight_mec")
 
-# Extract feature importance
-# xgb1 <- xgboost(data = xgb1_matrix, nrounds = 100, eta = 0.1, weight = weights)
-
-xgb1_importance <- xgb.importance(feature_names = vars, model = xgb1)
-print(xgb1_importance)
-
-# Plot feature importance
-xgb1.plot <- xgb.ggplot.importance(xgb1_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_jnc7_features_pre.png",xgb1.plot)
 
 ### Post 2013####
-xgb2_df <- as.matrix(dat_hyp_final_post_train[names(dat_hyp_final_post_train) %in% vars])
-xgb2_label <- dat_hyp_final_post_train$bp_control_jnc7
-xgb2_matrix <- xgb.DMatrix(data = xgb2_df, label = xgb2_label)
-xgb2 <- xgboost(data = xgb2_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb2_importance <- xgb.importance(feature_names = vars, model = xgb1)
-print(xgb2_importance)
+post2013_bp_control_jnc7 <- xgboost_eval("bp_control_jnc7",dat_hyp_final_post_train, "svy_weight_mec",dat_hyp_final_post_test)
 
-# Plot feature importance
-xgb2.plot <- xgb.ggplot.importance(xgb2_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_jnc7_features_post.png",xgb2.plot)
+post2013_bp_control_jnc7_samp <- xgboost_rank_samp("bp_control_jnc7",dat_hyp_final_post_samp, "svy_weight_mec")
 
 ### Overall####
-xgb3_df <- as.matrix(dat_hyp_final_train[names(dat_hyp_final_train) %in% vars])
-xgb3_label <- dat_hyp_final_train$bp_control_jnc7
-xgb3_matrix <- xgb.DMatrix(data = xgb3_df, label = xgb3_label)
-xgb3 <- xgboost(data = xgb3_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb3_importance <- xgb.importance(feature_names = vars, model = xgb3)
-print(xgb3_importance)
+bp_control_jnc7 <- xgboost_eval("bp_control_jnc7",dat_hyp_final_train, "svy_weight_mec",dat_hyp_final_test)
 
-# Plot feature importance
-xgb3.plot <- xgb.ggplot.importance(xgb3_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_jnc7_features_overall.png",xgb3.plot)
-
-
-outcome1.imp <- bind_rows(list(xgb1 = xgb1_importance, xgb2 = xgb2_importance, xgb3 = xgb3_importance), .id = "source")
+bp_control_jnc7_samp <- xgboost_rank_samp("bp_control_jnc7",dat_hyp_final_samp, "svy_weight_mec")
 
 
 ## Outcome 2: bp_control_accaha####
 
 ### Pre 2013####
-xgb4_df <- as.matrix(dat_hyp_final_pre_train[names(dat_hyp_final_pre_train) %in% vars])
-xgb4_label <- dat_hyp_final_pre_train$bp_control_accaha
-xgb4_matrix <- xgb.DMatrix(data = xgb4_df, label = xgb4_label)
-xgb4 <- xgboost(data = xgb4_matrix, nrounds = 100, eta = 0.1, weight = weights)
+pre2013_bp_control_accaha <- xgboost_eval("bp_control_accaha",dat_hyp_final_pre_train, "svy_weight_mec",dat_hyp_final_pre_test)
 
-# Extract feature importance
-xgb4_importance <- xgb.importance(feature_names = vars, model = xgb4)
-print(xgb4_importance)
-
-# Plot feature importance
-xgb4.plot <- xgb.ggplot.importance(xgb4_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_accaha_features_pre.png",xgb4.plot)
-
+pre2013_bp_control_accaha_samp <- xgboost_rank_samp("bp_control_accaha",dat_hyp_final_pre_samp, "svy_weight_mec")
 
 ### Post 2013####
-xgb5_df <- as.matrix(dat_hyp_final_post_train[names(dat_hyp_final_post_train) %in% vars])
-xgb5_label <- dat_hyp_final_post_train$bp_control_accaha
-xgb5_matrix <- xgb.DMatrix(data = xgb5_df, label = xgb5_label)
-xgb5 <- xgboost(data = xgb5_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb5_importance <- xgb.importance(feature_names = vars, model = xgb5)
-print(xgb5_importance)
+post2013_bp_control_accaha <- xgboost_eval("bp_control_accaha",dat_hyp_final_post_train, "svy_weight_mec",dat_hyp_final_post_test)
 
-# Plot feature importance
-xgb5.plot <- xgb.ggplot.importance(xgb5_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_accaha_features_post.png",xgb5.plot)
-
+post2013_bp_control_accaha_samp <- xgboost_rank_samp("bp_control_accaha",dat_hyp_final_post_samp, "svy_weight_mec")
 
 ### Overall####
-xgb6_df <- as.matrix(dat_hyp_final_train[names(dat_hyp_final_train) %in% vars])
-xgb6_label <- dat_hyp_final_train$bp_control_accaha
-xgb6_matrix <- xgb.DMatrix(data = xgb6_df, label = xgb6_label)
-xgb6 <- xgboost(data = xgb6_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb6_importance <- xgb.importance(feature_names = vars, model = xgb6)
-print(xgb6_importance)
+bp_control_accaha <- xgboost_eval("bp_control_accaha",dat_hyp_final_train, "svy_weight_mec",dat_hyp_final_test)
 
-# Plot feature importance
-xgb6.plot <- xgb.ggplot.importance(xgb6_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_accaha_features_overall.png",xgb6.plot)
-
-outcome2.imp <- bind_rows(list(xgb4 = xgb4_importance, xgb5 = xgb5_importance, xgb6 = xgb6_importance), .id = "source")
+bp_control_accaha_samp <- xgboost_rank_samp("bp_control_accaha",dat_hyp_final_samp, "svy_weight_mec")
 
 
 ## Outcome 3: bp_control_140_90####
 
 ### Pre 2013####
-xgb7_df <- as.matrix(dat_hyp_final_pre_train[names(dat_hyp_final_pre_train) %in% vars])
-xgb7_label <- dat_hyp_final_pre_train$bp_control_140_90
-xgb7_matrix <- xgb.DMatrix(data = xgb7_df, label = xgb7_label)
-xgb7 <- xgboost(data = xgb7_matrix, nrounds = 100, eta = 0.1, weight = weights)
+pre2013_bp_control_140_90 <- xgboost_eval("bp_control_140_90",dat_hyp_final_pre_train, "svy_weight_mec",dat_hyp_final_pre_test)
 
-# Extract feature importance
-xgb7_importance <- xgb.importance(feature_names = vars, model = xgb7)
-print(xgb7_importance)
-
-# Plot feature importance
-xgb7.plot <- xgb.ggplot.importance(xgb7_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_140_90_features_pre.png",xgb7.plot)
-
+pre2013_bp_control_140_90_samp <- xgboost_rank_samp("bp_control_140_90",dat_hyp_final_pre_samp, "svy_weight_mec")
 
 ### Post 2013####
-xgb8_df <- as.matrix(dat_hyp_final_post_train[names(dat_hyp_final_post_train) %in% vars])
-xgb8_label <- dat_hyp_final_post_train$bp_control_140_90
-xgb8_matrix <- xgb.DMatrix(data = xgb7_df, label = xgb7_label)
-xgb8 <- xgboost(data = xgb8_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb8_importance <- xgb.importance(feature_names = vars, model = xgb8)
-print(xgb8_importance)
+post2013_bp_control_140_90 <- xgboost_eval("bp_control_140_90",dat_hyp_final_post_train, "svy_weight_mec",dat_hyp_final_post_test)
 
-# Plot feature importance
-xgb8.plot <- xgb.ggplot.importance(xgb8_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_140_90_features_post.png",xgb8.plot)
+post2013_bp_control_140_90_samp <- xgboost_rank_samp("bp_control_140_90",dat_hyp_final_post_samp, "svy_weight_mec")
 
 ### Overall####
-xgb9_df <- as.matrix(dat_hyp_final_train[names(dat_hyp_final_train) %in% vars])
-xgb9_label <- dat_hyp_final_train$bp_control_140_90
-xgb9_matrix <- xgb.DMatrix(data = xgb9_df, label = xgb9_label)
-xgb9 <- xgboost(data = xgb9_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb9_importance <- xgb.importance(feature_names = vars, model = xgb9)
-print(xgb9_importance)
+bp_control_140_90 <- xgboost_eval("bp_control_140_90",dat_hyp_final_train, "svy_weight_mec",dat_hyp_final_test)
 
-# Plot feature importance
-xgb9.plot <- xgb.ggplot.importance(xgb9_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_140_90_features_overall.png",xgb9.plot)
+bp_control_140_90_samp <- xgboost_rank_samp("bp_control_140_90",dat_hyp_final_samp, "svy_weight_mec")
 
-outcome3.imp <- bind_rows(list(xgb7 = xgb7_importance, xgb8 = xgb8_importance, xgb9 = xgb9_importance), .id = "source")
 
 ## Outcome 4: bp_control_130_80####
 
 ### Pre 2013####
-xgb10_df <- as.matrix(dat_hyp_final_pre_train[names(dat_hyp_final_pre_train) %in% vars])
-xgb10_label <- dat_hyp_final_pre_train$bp_control_130_80
-xgb10_matrix <- xgb.DMatrix(data = xgb1_df, label = xgb1_label)
-xgb10 <- xgboost(data = xgb10_matrix, nrounds = 100, eta = 0.1, weight = weights)
+pre2013_bp_control_130_80 <- xgboost_eval("bp_control_130_80",dat_hyp_final_pre_train, "svy_weight_mec",dat_hyp_final_pre_test)
 
-# Extract feature importance
-xgb10_importance <- xgb.importance(feature_names = vars, model = xgb10)
-print(xgb10_importance)
-
-# Plot feature importance
-xgb10.plot <- xgb.ggplot.importance(xgb10_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_130_80_features_pre.png",xgb10.plot)
+pre2013_bp_control_130_80_samp <- xgboost_rank_samp("bp_control_130_80",dat_hyp_final_pre_samp, "svy_weight_mec")
 
 ### Post 2013####
-xgb11_df <- as.matrix(dat_hyp_final_post_train[names(dat_hyp_final_post_train) %in% vars])
-xgb11_label <- dat_hyp_final_post_train$bp_control_130_80
-xgb11_matrix <- xgb.DMatrix(data = xgb11_df, label = xgb11_label)
-xgb11 <- xgboost(data = xgb11_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb11_importance <- xgb.importance(feature_names = vars, model = xgb11)
-print(xgb11_importance)
+post2013_bp_control_130_80 <- xgboost_eval("bp_control_130_80",dat_hyp_final_post_train, "svy_weight_mec",dat_hyp_final_post_test)
 
-# Plot feature importance
-xgb11.plot <- xgb.ggplot.importance(xgb11_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_130_80_features_post.png",xgb11.plot)
+post2013_bp_control_130_80_samp <- xgboost_rank_samp("bp_control_130_80",dat_hyp_final_post_samp, "svy_weight_mec")
 
 ### Overall####
-xgb12_df <- as.matrix(dat_hyp_final_train[names(dat_hyp_final_train) %in% vars])
-xgb12_label <- dat_hyp_final_train$bp_control_jnc7
-xgb12_matrix <- xgb.DMatrix(data = xgb12_df, label = xgb3_label)
-xgb12 <- xgboost(data = xgb12_matrix, nrounds = 100, eta = 0.1, weight = weights)
 
-# Extract feature importance
-xgb12_importance <- xgb.importance(feature_names = vars, model = xgb12)
-print(xgb12_importance)
+bp_control_130_80 <- xgboost_eval("bp_control_130_80",dat_hyp_final_train, "svy_weight_mec",dat_hyp_final_test)
 
-# Plot feature importance
-xgb12.plot <- xgb.ggplot.importance(xgb12_importance, measure = "Frequency", rel_to_first = TRUE, xlab = "Relative importance")
-ggsave("plots/xgboost/bp_control_130_80_features_overall.png",xgb12.plot)
-
-outcome4.imp <- bind_rows(list(xgb10 = xgb10_importance, xgb11 = xgb11_importance, xgb12 = xgb12_importance), .id = "source")
-
-write.csv(outcome1.imp, file = "tables/xgboost/bp_control_jnc7_features.csv")
-write.csv(outcome2.imp, file = "tables/xgboost/bp_control_accaha_features.csv")
-write.csv(outcome3.imp, file = "tables/xgboost/bp_control_140_90_features.csv")
-write.csv(outcome4.imp, file = "tables/xgboost/bp_control_130_80_features.csv")
+bp_control_130_80_samp <- xgboost_rank_samp("bp_control_130_80",dat_hyp_final_samp, "svy_weight_mec")
 
 
+## Output Rank List####
 
+outcome1.list <- bind_rows(list(pre2013 = pre2013_bp_control_jnc7_samp$mean_rankimp, post2013 = post2013_bp_control_jnc7_samp$mean_rankimp, overall = bp_control_jnc7_samp$mean_rankimp), .id = "Year")
+outcome2.list <- bind_rows(list(pre2013 = pre2013_bp_control_accaha_samp$mean_rankimp, post2013 = post2013_bp_control_accaha_samp$mean_rankimp, overall = bp_control_accaha_samp$mean_rankimp), .id = "Year")
+outcome3.list <- bind_rows(list(pre2013 = pre2013_bp_control_140_90_samp$mean_rankimp, post2013 = post2013_bp_control_140_90_samp$mean_rankimp, overall = bp_control_140_90_samp$mean_rankimp), .id = "Year")
+outcome4.list <- bind_rows(list(pre2013 = pre2013_bp_control_130_80_samp$mean_rankimp, post2013 = post2013_bp_control_130_80_samp$mean_rankimp, overall = bp_control_130_80_samp$mean_rankimp), .id = "Year")
+
+outcome1.finallist <- outcome1.list %>%
+  group_by(Feature) %>% mutate(Count = n()) %>% filter(Count >= 2)
+outcome2.finallist <- outcome2.list %>%
+  group_by(Feature) %>% mutate(Count = n()) %>% filter(Count >= 2)
+outcome3.finallist <- outcome3.list %>%
+  group_by(Feature) %>% mutate(Count = n()) %>% filter(Count >= 2)
+outcome4.finallist <- outcome4.list %>%
+  group_by(Feature) %>% mutate(Count = n()) %>% filter(Count >= 2)
+
+
+write.csv(outcome1.list, file = "tables/xgboost/bp_control_jnc7_features.csv")
+write.csv(outcome2.list, file = "tables/xgboost/bp_control_accaha_features.csv")
+write.csv(outcome3.list, file = "tables/xgboost/bp_control_140_90_features.csv")
+write.csv(outcome4.list, file = "tables/xgboost/bp_control_130_80_features.csv")
+
+write.csv(outcome1.finallist, file = "tables/xgboost/bp_control_jnc7_features_final.csv")
+write.csv(outcome2.finallist, file = "tables/xgboost/bp_control_accaha_features_final.csv")
+write.csv(outcome3.finallist, file = "tables/xgboost/bp_control_140_90_features_final.csv")
+write.csv(outcome4.finallist, file = "tables/xgboost/bp_control_130_80_features_final.csv")
+
+save(pre2013_bp_control_jnc7_samp, post2013_bp_control_jnc7_samp,bp_control_jnc7_samp,
+     pre2013_bp_control_accaha_samp, post2013_bp_control_accaha_samp, bp_control_accaha_samp,
+     pre2013_bp_control_140_90_samp, post2013_bp_control_140_90_samp, bp_control_140_90_samp,
+     pre2013_bp_control_130_80_samp, post2013_bp_control_130_80_samp, bp_control_130_80_samp,
+     file = "tables/xgboost/xgboost_ranklist.RData")
