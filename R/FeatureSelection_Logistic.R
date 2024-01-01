@@ -69,7 +69,7 @@ sd_importances_pre <- sapply(all_results_pre, function(outcome_result) {
 
 # Save mean and standard deviation into a CSV file
 importances_stats_pre <- data.frame(mean_importance = mean_importances_pre, sd_importance = sd_importances_pre)
-write.csv(importances_stats, file = "/Users/cdp4029/Downloads/importances_stats_replicated_pre.csv")
+write.csv(importances_stats_pre, file = "/Users/cdp4029/Downloads/importances_stats_replicated_pre.csv")
 
 # Create ranking plots
 install.packages("ggplot")
@@ -454,4 +454,150 @@ for (i in seq_along(outcome_vars)) {
   combined_df <- combined_final_features[[i]]
   csv_file <- paste("/Users/cdp4029/Downloads/final_features_", tolower(outcome_var), ".csv", sep = "")
   write.csv(combined_df, file = csv_file, row.names = FALSE)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Create a function to extract selected features, means, and standard deviations
+extract_features_means_sds <- function(results_list) {
+  features_means_sds_list <- lapply(results_list, function(outcome_result) {
+    lapply(outcome_result, function(replication_result) {
+      selected_features <- replication_result$selected_features
+      mean_values <- colMeans(replication_result$lasso_coef)
+      sd_values <- apply(replication_result$lasso_coef, 2, sd)
+      result_df <- data.frame(
+        Feature = selected_features,
+        Mean = mean_values,
+        SD = sd_values
+      )
+      return(result_df)
+    })
+  })
+  return(features_means_sds_list)
+}
+
+# Apply the function to each set of results
+features_means_sds_pre <- extract_features_means_sds(all_results_pre)
+features_means_sds_post <- extract_features_means_sds(all_results_post)
+features_means_sds_overall <- extract_features_means_sds(all_results_overall)
+
+# Combine all replications for each outcome
+combined_features_means_sds <- lapply(seq_along(outcome_vars), function(i) {
+  outcome_var <- outcome_vars[i]
+  
+  # Extract features, means, and sds for pre, post, and overall
+  features_pre <- do.call(rbind, lapply(features_means_sds_pre[[i]], function(replication_result_pre) {
+    replication_result_pre
+  }))
+  
+  features_post <- do.call(rbind, lapply(features_means_sds_post[[i]], function(replication_result_post) {
+    replication_result_post
+  }))
+  
+  features_overall <- do.call(rbind, lapply(features_means_sds_overall[[i]], function(replication_result_overall) {
+    replication_result_overall
+  }))
+  
+  # Combine features, means, and sds
+  all_combined_features_means_sds <- merge(merge(features_pre, features_post, by = "Feature", suffixes = c("_pre", "_post")), features_overall, by = "Feature")
+  
+  # Save to CSV with a name starting with "final_features"
+  file_path <- sprintf("/Users/cdp4029/Downloads/final_features_means_sds_%s_combined.csv", outcome_var)
+  write.csv(all_combined_features_means_sds, file = file_path, row.names = FALSE)
+  
+  return(all_combined_features_means_sds)
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Access the list of replicated data for each phase
+replicated_data_list_pre <- dat_hyp_final_pre_samp
+replicated_data_list_post <- dat_hyp_final_post_samp
+replicated_data_list_overall <- dat_hyp_final_samp
+
+# Outcome variables
+outcome_vars <- c("bp_control_jnc7", "bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+
+# Columns to exclude
+columns_to_exclude <- c("SEQN", "svy_psu", "svy_weight_mec", "svy_strata", "svy_year", "bp_control_jnc7", "bp_control_accaha", "bp_control_140_90", "bp_control_130_80")
+
+# Function to exclude specified columns
+exclude_columns <- function(dataset) {
+  predictors <- dataset[, !colnames(dataset) %in% columns_to_exclude]
+  return(predictors)
+}
+
+# Define a function to run the model and extract selected features with coefficients
+run_model_and_extract_selected_features <- function(outcome_var, train_data, weights, phase) {
+  outcome <- train_data[[outcome_var]]
+  predictors <- exclude_columns(train_data)  
+  lasso_model <- cv.glmnet(as.matrix(predictors), outcome, family = "binomial", alpha = 1, weights = weights)
+  best_lambda <- lasso_model$lambda.min
+  lasso_coef <- coef(lasso_model, s = best_lambda)
+  selected_features <- rownames(lasso_coef)[lasso_coef[, 1] != 0]
+  result_df <- data.frame(
+    Feature = selected_features,
+    Coefficient = lasso_coef[selected_features, ],
+    Phase = rep(phase, length(selected_features))
+  )
+  return(result_df)
+}
+
+# Create an empty list to store results
+selected_features_list <- list()
+
+# Loop through outcomes
+for (outcome_var in outcome_vars) {
+  # Extract training sets for each phase
+  train_data_pre <- dat_hyp_final_pre_train
+  train_data_post <- dat_hyp_final_post_train
+  train_data_overall <- dat_hyp_final_train
+  
+  # Run the model and extract selected features with coefficients for each phase
+  selected_features_pre <- run_model_and_extract_selected_features(outcome_var, train_data_pre, train_data_pre$svy_weight_mec, "pre")
+  selected_features_post <- run_model_and_extract_selected_features(outcome_var, train_data_post, train_data_post$svy_weight_mec, "post")
+  selected_features_overall <- run_model_and_extract_selected_features(outcome_var, train_data_overall, train_data_overall$svy_weight_mec, "overall")
+  
+  # Combine selected features with coefficients for each outcome
+  selected_features_combined <- unique(rbind(selected_features_pre, selected_features_post, selected_features_overall))
+  
+  # Store selected features with coefficients for the current outcome
+  selected_features_list[[outcome_var]] <- selected_features_combined
+}
+
+# Save to CSV files
+for (outcome_var in outcome_vars) {
+  selected_features_df <- selected_features_list[[outcome_var]]
+  file_path <- sprintf("/Users/cdp4029/Downloads/final_selected_features_%s.csv", outcome_var)
+  write.csv(selected_features_df, file = file_path, row.names = FALSE)
 }
