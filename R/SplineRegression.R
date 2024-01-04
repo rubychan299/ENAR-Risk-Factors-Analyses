@@ -74,7 +74,7 @@ dat_hyp_cleaned_svy <- svydesign(
 
 table1 <- tbl_svysummary(dat_hyp_cleaned_svy,
                          missing = "no", 
-                         statistic = list(all_continuous() ~ "{mean}({sd}, {mean.std.error}), {median} ({p25}, {p75})", all_categorical() ~ "{n} ({p}%, {p.std.error}),{n_unweighted}({p_unweighted}%)"))
+                         statistic = list(all_continuous() ~ "{mean}({sd})", all_categorical() ~ "{n} ({p}%)"))
 table1 %>%
   as_gt() %>%
   gt::gtsave(filename = "tables/univariate.html")
@@ -82,7 +82,7 @@ table1 %>%
 table2 <- tbl_svysummary(dat_hyp_cleaned_svy,
                          missing = "no", 
                          by = "bp_control_jnc7",
-                         statistic = list(all_continuous() ~ "{mean}({sd}, {mean.std.error}), {median} ({p25}, {p75})", all_categorical() ~ "{n} ({p}%, {p.std.error}),{n_unweighted}({p_unweighted}%)")) %>% 
+                         statistic = list(all_continuous() ~ "{mean}({sd})", all_categorical() ~ "{n} ({p}%)")) %>% 
   add_p()
 
 table2 %>%
@@ -92,7 +92,7 @@ table2 %>%
 table3 <- tbl_svysummary(dat_hyp_cleaned_svy,
                          missing = "no", 
                          by = "bp_control_accaha",
-                         statistic = list(all_continuous() ~ "{mean}({sd}, {mean.std.error}), {median} ({p25}, {p75})", all_categorical() ~ "{n} ({p}%, {p.std.error}),{n_unweighted}({p_unweighted}%)")) %>% 
+                         statistic = list(all_continuous() ~ "{mean}({sd})", all_categorical() ~ "{n} ({p}%)")) %>% 
   add_p()
 
 
@@ -103,7 +103,7 @@ table3 %>%
 table4 <- tbl_svysummary(dat_hyp_cleaned_svy,
                          missing = "no", 
                          by = "Year",
-                         statistic = list(all_continuous() ~ "{mean}({sd}, {mean.std.error}), {median} ({p25}, {p75})", all_categorical() ~ "{n} ({p}%, {p.std.error}),{n_unweighted}({p_unweighted}%)")) %>% 
+                         statistic = list(all_continuous() ~ "{mean}({sd}, {mean.std.error})", all_categorical() ~ "{n} ({p}%, {p.std.error})")) %>% 
   add_p()
 
 table4 %>%
