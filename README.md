@@ -1,12 +1,14 @@
 # ENAR-Risk-Factors-Analyses
 ENAR DataFest 2024
 
-Team Members: Taehyo Kim, Yuyu(Ruby) Chen, Zhihao Chen, Cindy Patippe 
+Team Members: Taehyo Kim, Yuyu(Ruby) Chen, Cindy Patippe 
 
 # Proposal for Analysis of Blood Pressure Control Trends Among US Adults
+
 ## I. Introduction
 A. Problem Statement
 Controlling blood pressure (BP) is crucial for reducing cardiovascular disease risk. However, the prevalence of BP control among US adults with hypertension has been declining since 2013. This study aims to investigate potential causes or correlates of this trend using publicly available data, thereby contributing to the development of effective interventions.
+
 ## II. Data Description
 We will utilize data from the US National Health and Nutrition Examination Survey (NHANES) from 1999 to 2020. This dataset includes information on demographics, blood pressure levels, hypertension status, antihypertensive medication usage, and co-morbidities for 59,799 noninstitutionalized US adults.
 ## III. Approaches

@@ -61,3 +61,46 @@ combine_surveys_DT <- function(survey_list) {
   
   return(base_df)
 }
+
+library(survey)
+library(splines)
+
+stepwise_elimination <- function(data, design, response_var, predictors, spline_terms = NULL, p_threshold = 0.05) {
+  # Construct the formula for the full model
+  formula_str <- paste(response_var, "~", paste(c(predictors, spline_terms), collapse = " + "))
+  formula <- as.formula(formula_str)
+  
+  # Create the initial model
+  model <- svyglm(formula, design = design, family = quasibinomial())
+  
+  # Start the elimination process
+  eliminated <- FALSE
+  while (!eliminated) {
+    # Extract the summary and p-values
+    model_summary <- summary(model)
+    p_values <- coef(model_summary)[, "Pr(>|t|)"]
+    
+    # Remove the NA entries (for the intercept)
+    p_values <- p_values[!is.na(p_values)]
+    
+    # Find the variable with the highest p-value
+    max_p_value <- max(p_values)
+    if (max_p_value > p_threshold) {
+      # Get the name of the variable to remove
+      variable_to_remove <- names(which.max(p_values))
+      predictors <- setdiff(predictors, variable_to_remove)
+      
+      # Update the formula
+      formula_str <- paste(response_var, "~", paste(predictors, collapse = " + "))
+      formula <- as.formula(formula_str)
+      
+      # Refit the model
+      model <- svyglm(formula, design = design, family = quasibinomial(), control = glm.control(maxit = 50, epsilon = 1e-8))
+    } else {
+      eliminated <- TRUE
+    }
+  }
+  
+  return(model)
+}
+

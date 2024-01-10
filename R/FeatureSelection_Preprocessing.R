@@ -31,7 +31,7 @@ dat_hyp_final_post <- dat_hyp_final %>%
   filter(svy_year == "2013-2014" | svy_year == "2015-2016" | svy_year == "2017-2020")
 
 dat_hyp_final <- dat_hyp_final %>% 
-  filter(svy_year != "1999-2000" | svy_year == "2001-2002")
+  filter(svy_year != "1999-2000" | svy_year != "2001-2002")
 
 # split into 80% training and 20% testing
 set.seed(2024)

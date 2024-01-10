@@ -4,6 +4,8 @@ library(tidyverse)
 library(ggplot2)
 library(survey)
 library(gtsummary)
+library(MASS)
+library(car)
 
 # load the data####
 
@@ -47,7 +49,7 @@ dat_hyp_cleaned <- dat_hyp_cleaned %>%
          -URXUMS, -URXCRS, -contains("BPQ050A"), -contains("cc_cvd_stroke"), -contains("svy_subpop_chol"))
 
 dat_hyp_cleaned <- dat_hyp_cleaned %>% 
-  filter(svy_year != "1999-2000" | svy_year == "2001-2002")
+  filter(svy_year != "1999-2000" | svy_year != "2001-2002")
 
 dat_hyp_cleaned <- dat_hyp_cleaned %>% 
   mutate(svy_year = case_when(svy_year == "2003-2004" ~ 2003,
@@ -113,14 +115,15 @@ table4 %>%
 
 # Logistic Spline Regression with Complex Survey design####
 
-
-## Survey Design####
 dat_hyp_mice <- dat_hyp_mice %>% 
   select(-contains("DSD010_x"), -contains("DRDINT_x"), -contains("DRDINT_y"), -LBDHDDSI,
          -URXUMS, -URXCRS, -contains("BPQ050A"), -contains("cc_cvd_stroke"), -contains("svy_subpop_chol"))
 
-dat_hyp_mice <- dat_hyp_mice %>% 
-  filter(svy_year != "1999-2000" | svy_year == "2001-2002")
+# dat_hyp_mice <- dat_hyp_mice %>% 
+#   filter(svy_year != "1999-2000" | svy_year != "2001-2002")
+
+dat_hyp_mice <- dat_hyp_mice %>%
+  filter(svy_year == "2003-2004" | svy_year == "2005-2006" | svy_year == "2007-2008" | svy_year == "2009-2010" | svy_year == "2011-2012" | svy_year == "2013-2014" | svy_year == "2015-2016" | svy_year == "2017-2020")
 
 dat_hyp_mice <- dat_hyp_mice %>% 
   mutate(svy_year = case_when(svy_year == "2003-2004" ~ 2003,
@@ -130,8 +133,9 @@ dat_hyp_mice <- dat_hyp_mice %>%
                               svy_year == "2011-2012" ~ 2011,
                               svy_year == "2013-2014" ~ 2013,
                               svy_year == "2015-2016" ~ 2015,
-                              svy_year == "2017-2020" ~ 2007))
+                              svy_year == "2017-2020" ~ 2017))
 
+## Survey Design####
 dat_hyp_svy <- svydesign(
   data = dat_hyp_mice, 
   ids = ~svy_psu,
@@ -140,20 +144,67 @@ dat_hyp_svy <- svydesign(
   nest = T
 )
 
-jnc7 <- c("demo_race", "demo_race_black", "demo_gender",
-          "bp_cat_meds_excluded_SBP120andDBP80mmHg", "bp_cat_meds_excluded_SBP160plusorDBP100plusmmHg",
-         "bp_cat_meds_excluded_SBPof120to130andDBP80mmHg", "bp_cat_meds_excluded_SBPof130to140orDBP80to90mmHg",
-         "bp_cat_meds_excluded_SBPof140to160orDBP90to100mmHg", "bp_cat_meds_included_SBPof130to140orDBP80to90mmHg",
-         "bp_cat_meds_included_takingantihypertensivemedications", "bp_dia_mean",
+## JNC7####
+
+jnc7 <- c("demo_race", "demo_race_black", "demo_gender","demo_age_years",
+          "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
          "bp_med_n_pills", "bp_med_recommended_accaha",
          "bp_med_recommended_jnc7", "bp_med_use", "bp_sys_mean",
-         "BPXSY2", "BPXSY3", "cc_ckd", "cc_diabetes", "demo_age_years",
+         "BPXSY2", "BPXSY3", "cc_ckd", "cc_diabetes", 
          "htn_resistant_jnc7")
 
-model_jnc7 <- glm(as.formula(paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2003)")),data = dat_hyp_mice, family = "binomial")
+formula_str <- paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
 
-model_jnc7 <- svyglm(as.formula(paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2003)")),design = dat_hyp_svy, family = "binomial")
+model_jnc7 <- glm(formula_obj, data = dat_hyp_mice, family = "binomial")
+
+model_jnc7 <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+summary(model_jnc7)
+vif(model_jnc7)
+
+spline_liner <- "bs(svy_year, degree =1, knots = c(2013))"
+
+### by p-val####
+final_model_jnc7 <- stepwise_elimination(data = dat_hyp_mice, design = dat_hyp_svy, response_var = "bp_control_jnc7", predictors = jnc7, spline_terms = spline_liner, p_threshold = 0.05)
+
+### by AIC####
+
+final_model_jnc7 <- stepAIC(model_jnc7, direction = "both")
+final_model_jnc7 <- step(model_jnc7, direction = "both")
+
+## ACC/AHA####
+
+accaha <- c("demo_race", "demo_race_black", "demo_gender","demo_age_years", 
+            "BMXARMC", "BMXARML", "BMXBMI", "BMXLEG",
+            "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
+            "bp_med_ace", "bp_med_aldo", "bp_med_angioten", "bp_med_diur_thz", "bp_med_n_class",
+            "bp_med_n_pills", "bp_med_pills_gteq_2", "bp_med_recommended_accaha", "bp_med_recommended_jnc7",
+            "bp_med_use", "bp_sys_mean", "BPAEN2", "BPQ020", "BPQ040A", "BPQ090D",
+            "BPXDI1", "BPXDI2", "BPXDI3", "BPXML1", "BPXPLS", "BPXSY1", "BPXSY2", "BPXSY3", 
+            "cc_cvd_any", "DPQ020", "DPQ070", "DPQ080", "DR1DAY", "DR1EXMER",
+            "DSDCOUNT.x", "HOD050", "HSQ590", "htn_aware", "htn_resistant_accaha",
+            "LBDHDD", "LBDMONO", "LBDNENO", "LBXEOPCT", "LBXHA", "LBXLYPCT", "LBXPLTSI",
+            "MCQ080", "MCQ160A", "OSQ060", "URXUCR", "WHD120")
 
 
-paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2003)")
+formula_str <- paste0("bp_control_accaha ~ ",paste(accaha, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
 
+model_accaha <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial",control = glm.control(maxit = 50))
+summary(model_accaha)
+
+# # Generate data for plotting the spline
+# x_range <- seq(min(dat_hyp_mice$svy_year), max(dat_hyp_mice$svy_year), length.out = 200)
+# y_spline <- predict(model_accaha, newdata = data.frame(svy_year = x_range))
+# 
+# # Create a data frame for plotting
+# plot_data <- data.frame(x = x_range, y = y_spline)
+# 
+# # Plot the data and the spline
+# p <- ggplot() +
+#   geom_point(aes(x = model_accaha, y = test), data = plot_data) +  # Original data points
+#   geom_line(aes(x, y), data = plot_data, color = "red") +  # Spline curve
+#   theme_minimal() +
+#   labs(title = "Linear Spline", x = "Year", y = "Outcome") 
+
+table(dat_hyp_mice$bp_control_accaha, dat_hyp_mice$svy_year)
