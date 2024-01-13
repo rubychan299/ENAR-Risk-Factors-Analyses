@@ -71,8 +71,8 @@ stepwise_elimination <- function(data, design, response_var, predictors, spline_
   formula <- as.formula(formula_str)
   
   # Create the initial model
-  model <- svyglm(formula, design = design, family = quasibinomial())
-  
+  model <- svyglm(formula, design = design, family = quasibinomial(), control = glm.control(maxit = 50))
+
   # Start the elimination process
   eliminated <- FALSE
   while (!eliminated) {
@@ -95,7 +95,8 @@ stepwise_elimination <- function(data, design, response_var, predictors, spline_
       formula <- as.formula(formula_str)
       
       # Refit the model
-      model <- svyglm(formula, design = design, family = quasibinomial(), control = glm.control(maxit = 50, epsilon = 1e-8))
+      model <- svyglm(formula, design = design, family = quasibinomial(), control = glm.control(maxit = 50))
+      print(summary(model))
     } else {
       eliminated <- TRUE
     }

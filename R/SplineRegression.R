@@ -6,6 +6,8 @@ library(survey)
 library(gtsummary)
 library(MASS)
 library(car)
+library(glmnet)
+library(tidymodels)
 
 # load the data####
 
@@ -116,7 +118,7 @@ table4 %>%
 # Logistic Spline Regression with Complex Survey design####
 
 dat_hyp_mice <- dat_hyp_mice %>% 
-  select(-contains("DSD010_x"), -contains("DRDINT_x"), -contains("DRDINT_y"), -LBDHDDSI,
+  dplyr::select(-contains("DSD010_x"), -contains("DRDINT_x"), -contains("DRDINT_y"), -LBDHDDSI,
          -URXUMS, -URXCRS, -contains("BPQ050A"), -contains("cc_cvd_stroke"), -contains("svy_subpop_chol"))
 
 # dat_hyp_mice <- dat_hyp_mice %>% 
@@ -156,21 +158,83 @@ jnc7 <- c("demo_race", "demo_race_black", "demo_gender","demo_age_years",
 formula_str <- paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
 formula_obj <- as.formula(formula_str)
 
-model_jnc7 <- glm(formula_obj, data = dat_hyp_mice, family = "binomial")
+### Check for multicolinearity####
 
+y <- matrix(dat_hyp_mice$bp_control_jnc7)
+x <- as.matrix(dat_hyp_mice[jnc7])
+
+ridge_jnc7 <- cv.glmnet(x, y, weights = dat_hyp_mice$svy_weight_mec, alpha = 0, family="binomial")
+lambda <- ridge_jnc7$lambda.min
+ridge_jnc7 <- glmnet(x, y, weights = dat_hyp_mice$svy_weight_mec, alpha = 0, family="binomial", lambda = lambda)
+coef(ridge_jnc7)
+
+library(ggcorrplot)
+model.matrix(~0+., data=dat_hyp_mice[,jnc7]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
+#### Update the variable list based on the correlation####
+
+jnc7 <- c("demo_race", "demo_gender","demo_age_years",
+          "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
+          "bp_med_n_pills", "bp_med_recommended_jnc7", "bp_sys_mean", "cc_ckd", "cc_diabetes", 
+          "htn_resistant_jnc7")
+
+formula_str <- paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
+
+
+# model_jnc7 <- glm(formula_obj, data = dat_hyp_mice, family = "binomial")
 model_jnc7 <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
 summary(model_jnc7)
+AIC(model_jnc7)
 vif(model_jnc7)
 
-spline_liner <- "bs(svy_year, degree =1, knots = c(2013))"
-
 ### by p-val####
-final_model_jnc7 <- stepwise_elimination(data = dat_hyp_mice, design = dat_hyp_svy, response_var = "bp_control_jnc7", predictors = jnc7, spline_terms = spline_liner, p_threshold = 0.05)
+# spline_liner <- "bs(svy_year, degree =1, knots = c(2013))"
+# final_model_jnc7 <- stepwise_elimination(data = dat_hyp_mice, design = dat_hyp_svy, response_var = "bp_control_jnc7", predictors = jnc7, spline_terms = spline_liner, p_threshold = 0.1)
+
+model_summary <- summary(model_jnc7)
+p_values <- coef(model_summary)[, "Pr(>|t|)"]
+variable_to_remove <- names(p_values[p_values > 0.1])
+predictors <- setdiff(jnc7, variable_to_remove)
+
+formula_str <- paste0("bp_control_jnc7 ~ ",paste(predictors, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
+
+final_model_jnc7_pval <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+summary(final_model_jnc7_pval)
+AIC(final_model_jnc7_pval)
 
 ### by AIC####
 
-final_model_jnc7 <- stepAIC(model_jnc7, direction = "both")
-final_model_jnc7 <- step(model_jnc7, direction = "both")
+final_model_jnc7_aic <- stepAIC(model_jnc7, direction = "both")
+
+### Start with univariate regression####
+
+for(i in seq_along(jnc7)){
+  
+  formula_str <- paste0("bp_control_jnc7 ~ ",paste(jnc7[i], collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+  formula_obj <- as.formula(formula_str)
+  
+  jnc7_uni<- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+  print(summary(jnc7_uni))
+  
+}
+
+jnc7 <- c("demo_race", "demo_gender","demo_age_years",
+          "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
+          "bp_med_recommended_jnc7", "bp_sys_mean", "cc_ckd", "cc_diabetes", 
+          "htn_resistant_jnc7")
+
+
+formula_str <- paste0("bp_control_jnc7 ~ ",paste(jnc7, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
+
+model_jnc7 <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+summary(model_jnc7)
+
+model_jnc7_tab <- tbl_regression(model_jnc7)
 
 ## ACC/AHA####
 
@@ -186,25 +250,90 @@ accaha <- c("demo_race", "demo_race_black", "demo_gender","demo_age_years",
             "LBDHDD", "LBDMONO", "LBDNENO", "LBXEOPCT", "LBXHA", "LBXLYPCT", "LBXPLTSI",
             "MCQ080", "MCQ160A", "OSQ060", "URXUCR", "WHD120")
 
+### Check for multicolinearity####
+
+model.matrix(~0+., data=dat_hyp_mice[,accaha]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
+#### Update the variable list based on the correlation####
+
+accaha <- c("demo_race", "demo_gender","demo_age_years", "BMXBMI", 
+            "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
+            "bp_med_ace", "bp_med_aldo", "bp_med_angioten", "bp_med_diur_thz", "bp_med_n_class",
+            "bp_sys_mean", "BPAEN2", "BPQ040A", "BPQ090D", "BPXPLS", "DPQ070", "DPQ080",
+            "DSDCOUNT.x", "HOD050", "HSQ590",
+            "LBDHDD", "LBDMONO", "LBDNENO", "LBXEOPCT", "LBXHA", "LBXLYPCT", "LBXPLTSI",
+            "MCQ080", "MCQ160A", "OSQ060", "URXUCR", "WHD120")
+
+model.matrix(~0+., data=dat_hyp_mice[,accaha]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
 
 formula_str <- paste0("bp_control_accaha ~ ",paste(accaha, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
 formula_obj <- as.formula(formula_str)
 
 model_accaha <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial",control = glm.control(maxit = 50))
 summary(model_accaha)
+vif(model_accaha)
+AIC(model_accaha)
 
-# # Generate data for plotting the spline
-# x_range <- seq(min(dat_hyp_mice$svy_year), max(dat_hyp_mice$svy_year), length.out = 200)
-# y_spline <- predict(model_accaha, newdata = data.frame(svy_year = x_range))
-# 
-# # Create a data frame for plotting
-# plot_data <- data.frame(x = x_range, y = y_spline)
-# 
-# # Plot the data and the spline
-# p <- ggplot() +
-#   geom_point(aes(x = model_accaha, y = test), data = plot_data) +  # Original data points
-#   geom_line(aes(x, y), data = plot_data, color = "red") +  # Spline curve
-#   theme_minimal() +
-#   labs(title = "Linear Spline", x = "Year", y = "Outcome") 
+### by AIC####
+
+final_model_accaha_aic <- stepAIC(svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial",control = glm.control(maxit = 50)), direction = "both")
+
+### by p-val####
+model_summary <- summary(model_accaha)
+p_values <- coef(model_summary)[, "Pr(>|t|)"]
+variable_to_remove <- names(p_values[p_values > 0.5])
+predictors <- setdiff(accaha, variable_to_remove)
+
+formula_str <- paste0("bp_control_accaha ~ ",paste(predictors, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
+
+final_model_accaha_pval <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+summary(final_model_accaha_pval)
+
+
+### Start with univariate regression####
+
+for(i in seq_along(accaha)){
+  
+  formula_str <- paste0("bp_control_accaha ~ ",paste(accaha[i], collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+  formula_obj <- as.formula(formula_str)
+  
+  accaha_uni<- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial", control = glm.control(maxit = 50))
+  print(summary(accaha_uni))
+  
+}
+
+
+accaha <- c("demo_race", "demo_gender","demo_age_years", "BMXBMI", 
+            "bp_cat_meds_excluded","bp_cat_meds_included", "bp_dia_mean",
+            "bp_med_ace", "bp_med_aldo", "bp_med_angioten", "bp_med_diur_thz", "bp_med_n_class",
+            "bp_sys_mean", "BPQ040A", "BPQ090D", "BPXPLS","DSDCOUNT.x",
+            "LBDHDD", "LBDMONO", "LBXEOPCT", "LBXLYPCT", "LBXPLTSI",
+            "MCQ080", "MCQ160A")
+
+formula_str <- paste0("bp_control_accaha ~ ",paste(accaha, collapse = " + "), "+ bs(svy_year, degree =1, knots = c(2013))")
+formula_obj <- as.formula(formula_str)
+
+model_accaha <- svyglm(formula_obj, design = dat_hyp_svy, family = "quasibinomial",control = glm.control(maxit = 50))
+summary(model_accaha)
+vif(model_accaha)
+AIC(model_accaha)
+
+model_accaha_tab <- tbl_regression(model_accaha)
+
+model_output <-
+  tbl_merge(
+    tbls = list(model_jnc7_tab, model_accaha_tab),
+    tab_spanner = c("**JNC7**", "**ACC/AHA**")
+  )
+
+model_output %>%
+  as_gt() %>%
+  gt::gtsave(filename = "tables/final_models.html")
 
 table(dat_hyp_mice$bp_control_accaha, dat_hyp_mice$svy_year)
