@@ -207,7 +207,7 @@ p.accaha <- ggplot(data = plot.accaha) +
   geom_hline(yintercept=0, linetype="dashed", color = "red") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1)) +
   facet_wrap(~years) +
-  ggtitle("Lasso Coefficients for BP Control with ACC/AHA guideline")
+  ggtitle("ElasticNet Coefficients for BP Control with ACC/AHA guideline")
 ggsave("plots/final_plot_lasso_accaha.png", p.accaha, width = 16, height =  8, units = "in")
   
 # try 0.1 threshold
