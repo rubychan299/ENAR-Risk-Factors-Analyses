@@ -1,0 +1,84 @@
+Features,,JNC7,,,ACC/AHA,
+,OR1,95% CI1,p-value,OR1,95% CI1,p-value
+Race/ethnicity,,,,,,
+    Non-Hispanic White,,—,,,—,
+    Non-Hispanic Black,0.942,"-0.19, 0.07",0.3,0.247,"-3.5, 0.77",0.2
+    Non-Hispanic Asian,0.942,"-0.24, 0.12",0.5,1.020,"-1.6, 1.6",>0.9
+    Hispanic,0.980,"-0.15, 0.10",0.7,0.566,"-1.9, 0.81",0.4
+    Other,1.020,"-0.30, 0.33",>0.9,1.221,"-3.4, 3.8",>0.9
+Gender,,,,,,
+    Men,,—,,,—,
+    Women,0.914,"-0.22, 0.03",0.14,6.050,"-0.18, 3.8",0.074
+Age at Screening Adjudicated - Recode,0.990,"-0.01, 0.00",0.012,1.271,"0.19, 0.30",<0.001
+Blood pressure category,,,,,,
+    SBP <120 and DBP <80 mm Hg,,—,,,—,
+    SBP of 120 to <130 and DBP <80 mm Hg,1.094,"-0.23, 0.41",0.6,0.961,"-3.4, 3.3",>0.9
+    SBP of 130 to <140 or DBP 80 to <90 mm Hg,2.82077E-53,"-121, -121",<0.001,1.60381E-28,"-70, -58",<0.001
+    SBP of 140 to <160 or DBP 90 to <100 mm Hg,9.08666E-80,"-183, -182",<0.001,8.98583E-37,"-90, -76",<0.001
+    SBP 160+ or DBP 100+ mm Hg,9.08666E-80,"-183, -181",<0.001,6.63968E-36,"-89, -74",<0.001
+bp_cat_meds_included,,,,,,
+    SBP of 130 to <140 or DBP 80 to <90 mm Hg,,—,,,—,
+    SBP of 130 to <140 or DBP 80 to <90 mm Hg,,—,,,—,
+    SBP of 130 to <140 or DBP 80 to <90 mm Hg,,—,,,—,
+    SBP of 130 to <140 or DBP 80 to <90 mm Hg,,—,,,—,
+    SBP of 140 to <160 or DBP 90 to <100 mm Hg,3.004,"0.83, 1.3",<0.001,0.427,"-4.0, 2.3",0.6
+    SBP 160+ or DBP 100+ mm Hg,12.182,"2.2, 2.7",<0.001,0.463,"-4.0, 2.4",0.6
+    taking antihypertensive medications,22.198,"2.9, 3.2",<0.001,0.657,"-2.1, 1.2",0.6
+"Diastolic blood pressure (DBP), mm Hg",1.000,"0.00, 0.01",0.5,1.336,"0.21, 0.37",<0.001
+Antihypertensive medication use recommended by the JNC7 guideline,,,,,,
+    No,,—,,,,
+    Yes,0.003,"-6.1, -5.6",<0.001,,,
+"Systolic blood pressure (SBP), mm Hg",1.000,"-0.01, 0.01",0.5,0.795,"-0.28, -0.18",<0.001
+Prevalent chronic kidney disease,,,,,,
+    No,,—,,,,
+    Yes,3.22134E-27,"-61, -60",<0.001,,,
+Prevalent diabetes,,,,,,
+    No,,—,,,,
+    Yes,3.22134E-27,"-61, -61",<0.001,,,
+Apparent resistant hypertension defined by the JNC7 guideline,,,,,,
+    No,,—,,,,
+    Yes,0.607,"-0.66, -0.34",<0.001,,,
+Body Mass Index (kg/m^2),,,,1.020,"-0.05, 0.09",0.6
+ACE inhibitors,,,,,,
+    No,,,,,—,
+    Yes,,,,0.009,"-7.4, -2.1",<0.001
+Aldosterone antagonists,,,,,,
+    No,,,,,—,
+    Yes,,,,6.050,"-1.6, 5.2",0.3
+Angiotensin receptor blockers,,,,,,
+    No,,,,,—,
+    Yes,,,,1.584,"-1.8, 2.7",0.7
+Thiazide or thiazide-type diuretics,,,,,,
+    No,,,,,—,
+    Yes,,,,6.050,"-0.29, 3.9",0.09
+Number of antihypertensive medication classes,,,,,,
+    None,,,,,—,
+    One,,,,0.301,"-3.5, 1.2",0.3
+    Two,,,,0.517,"-3.1, 1.8",0.6
+    Three,,,,7.58256E-10,"-25, -17",<0.001
+    Four or more,,,,2.06115E-09,"-24, -15",<0.001
+Taking prescription for hypertension,,,,,,
+Yes,,,,,—,
+No,,,,2.138,"-0.87, 2.4",0.4
+Told to take prescriptn for cholesterol,,,,,,
+Yes,,,,,—,
+No,,,,1.462,"-1.5, 2.2",0.7
+Pulse regular or irregular?,,,,,,
+Regular,,,,,,
+Irregular,,,,0.905,"-0.16, -0.04",<0.001
+Total # of Dietary Supplements Taken,,,,1.127,"0.08, 0.16",<0.001
+Direct HDL-Cholesterol (mg/dL),,,,1.010,"-0.03, 0.04",0.6
+Monocyte number (1000 cells/uL),,,,1.259,"-2.1, 2.5",0.8
+Eosinophils percent (%),,,,0.651,"-0.72, -0.14",0.004
+Lymphocyte percent (%),,,,,"-0.05, 0.04",0.9
+Platelet count (1000 cells/uL),,,,,"-0.01, 0.01",0.5
+Doctor ever said you were overweight,,,,,,
+Yes,,,,,—,
+No,,,,0.795,"-1.6, 1.1",0.7
+Doctor ever said you had arthritis,,,,,,
+Yes,,,,,—,
+No,,,,0.202,"-3.1, -0.08",0.039
+"bs(svy_year, degree = 1, knots = c(2013))",,,,,,
+"    bs(svy_year, degree = 1, knots = c(2013))1",,"-0.28, 0.03",0.1,12.182,"0.44, 4.5",0.018
+"    bs(svy_year, degree = 1, knots = c(2013))2",,"-0.30, 0.01",0.062,8.166,"0.22, 3.9",0.028
+"1 OR = Odds Ratio, CI = Confidence Interval",,,,,,

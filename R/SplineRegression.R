@@ -137,6 +137,12 @@ dat_hyp_mice <- dat_hyp_mice %>%
                               svy_year == "2015-2016" ~ 2015,
                               svy_year == "2017-2020" ~ 2017))
 
+dat_hyp_mice <- dat_hyp_mice %>% 
+  mutate(BPQ040A = as.factor(BPQ040A),
+         BPQ090D = as.factor(BPQ090D),
+         MCQ080 = as.factor(MCQ080),
+         MCQ160A = as.factor(MCQ160A))
+
 ## Survey Design####
 dat_hyp_svy <- svydesign(
   data = dat_hyp_mice, 
@@ -337,3 +343,19 @@ model_output %>%
   gt::gtsave(filename = "tables/final_models.html")
 
 table(dat_hyp_mice$bp_control_accaha, dat_hyp_mice$svy_year)
+
+# Visualization
+year.grid <-seq(range(dat_hyp_mice$svy_year)[1], range(dat_hyp_mice$svy_year)[2], length.out = 26147)
+pred.spline <- predict(model_accaha, se=T)
+plot.data <- data.frame(x = year.grid, y = pred.spline)
+
+ggplot() +
+  geom_point(data = plot.data, mapping = aes(x = x, y = y), color = 'grey') +
+  geom_smooth(method="lm",
+              formula=  y ~ splines::bs(x, knots = c(2013), degree = 1))
+
+ggplot() +
+  geom_line(aes(x, y.link), data = plot.data, color = "red") +  # Spline curve
+  theme_minimal() +
+  labs(title = "Linear Spline", x = "Race", y = "BP Control ACC/AHA") +
+  ggtitle("BP Control ACC/AHA")
