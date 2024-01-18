@@ -1,14 +1,13 @@
 # Machine Learning-driven Risk Factor Identification on Post-2013 Blood Pressure Control Decline in Hypertensive Populations
 
-ENAR DataFest 2024
+This project is for the [ENAR DataFest 2024](https://www.enar.org/meetings/spring2024/program/datafest_submission.cfm)
 
-Yuyu(Ruby) Chen$^{*}$, Taehyo Kim$^{*}$, Cindy Patippe$^{*}$ 
+Team members: Yuyu(Ruby) Chen, Taehyo Kim, Cindy Patippe
 
-Department of Biostatistics, New York University School of Global Public Health
+Affiliation: Department of Biostatistics, New York University School of Global Public Health
 
-yc4178@nyu.edu, cdp4029@nyu.edu, tk2737@nyu.edu
+Email: yc4178@nyu.edu, cdp4029@nyu.edu, tk2737@nyu.edu
 
-$^{*}$Equal Contributions
 
 ## Abstract
 
