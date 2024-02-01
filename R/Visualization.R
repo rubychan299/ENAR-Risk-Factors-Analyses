@@ -200,7 +200,20 @@ plot.accaha.post <- plot.accaha.post %>%
 plot.accaha.post$years <- "Post-2013"
 
 plot.accaha <- rbind(plot.accaha.pre, plot.accaha.post)
+plot.accaha <- plot.accaha %>% 
+  mutate(direction = rep(ifelse(sign(coeff[years == "Pre-2013"]) == sign(coeff[years == "Post-2013"]), "Same", "Diff"),2),
+         sig_change = rep(ifelse(sig[years == "Pre-2013"] == sig[years == "Post-2013"], "Same", "Diff"),2),
+         group = case_when(sig_change == "Same" & direction == "Same" ~"Same Significant & Same Direction",
+                           sig_change == "Same" & direction == "Diff" ~"Same Significant & Diff Direction",
+                           sig_change =="Diff" & direction == "Same" ~"Diff Significant & Same Direction",
+                           sig_change =="Diff" & direction == "Diff" ~"Diff Significant & Diff Direction"))
 View(cbind(features = plot.accaha.pre$features, coeff.pre = plot.accaha.pre$coeff, coeff.post = plot.accaha.post$coeff))
+
+plot.accaha.new <- filter(plot.accaha, coeff < 5)
+
+plot.accaha.new <- plot.accaha.new %>% 
+  dplyr::select(features, years, coeff, group) %>% 
+  pivot_wider(names_from = years, values_from = coeff)
 
 p.accaha <- ggplot(data = plot.accaha) +
   geom_point(mapping = aes(x = features, y = coeff, group = sig, color = sig)) + 
@@ -209,7 +222,17 @@ p.accaha <- ggplot(data = plot.accaha) +
   facet_wrap(~years) +
   ggtitle("ElasticNet Coefficients for BP Control with ACC/AHA guideline")
 ggsave("plots/final_plot_lasso_accaha.png", p.accaha, width = 16, height =  8, units = "in")
-  
+
+
+p.accaha.new <- ggplot(data = plot.accaha.new) +
+  geom_point(mapping = aes(x = `Pre-2013`, y = `Post-2013`, group = group, color = group)) +
+  geom_text(mapping = aes(x = `Pre-2013`, y = `Post-2013`,label=features), nudge_x=0.45, nudge_y=0.1, check_overlap=T, size = 2) +
+  geom_abline(slope = 1, intercept =0, linetype="dashed", color = "red") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))  +
+  ggtitle("ElasticNet Coefficients for BP Control with ACC/AHA guideline")
+ggsave("plots/final_plot_lasso_accaha_new.png", p.accaha.new, width = 8, height = 6, units = "in")
+
+
 # try 0.1 threshold
 plot.accaha.pre <- data.frame(coeff = coef(accahapre2013)[-1,1],
                               features = names(coef(accahapre2013)[-1,]),
