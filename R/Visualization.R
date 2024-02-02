@@ -200,20 +200,29 @@ plot.accaha.post <- plot.accaha.post %>%
 plot.accaha.post$years <- "Post-2013"
 
 plot.accaha <- rbind(plot.accaha.pre, plot.accaha.post)
+# plot.accaha <- plot.accaha %>% 
+#   mutate(direction = rep(ifelse(sign(coeff[years == "Pre-2013"]) == sign(coeff[years == "Post-2013"]), "Same", "Diff"),2),
+#          sig_change = rep(ifelse(sig[years == "Pre-2013"] == sig[years == "Post-2013"], "Same", "Diff"),2),
+#          group = case_when(sig_change == "Same" & direction == "Same" ~"Same Significant & Same Direction",
+#                            sig_change == "Same" & direction == "Diff" ~"Same Significant & Diff Direction",
+#                            sig_change =="Diff" & direction == "Same" ~"Diff Significant & Same Direction",
+#                            sig_change =="Diff" & direction == "Diff" ~"Diff Significant & Diff Direction"))
+
 plot.accaha <- plot.accaha %>% 
   mutate(direction = rep(ifelse(sign(coeff[years == "Pre-2013"]) == sign(coeff[years == "Post-2013"]), "Same", "Diff"),2),
-         sig_change = rep(ifelse(sig[years == "Pre-2013"] == sig[years == "Post-2013"], "Same", "Diff"),2),
-         group = case_when(sig_change == "Same" & direction == "Same" ~"Same Significant & Same Direction",
-                           sig_change == "Same" & direction == "Diff" ~"Same Significant & Diff Direction",
-                           sig_change =="Diff" & direction == "Same" ~"Diff Significant & Same Direction",
-                           sig_change =="Diff" & direction == "Diff" ~"Diff Significant & Diff Direction"))
+         group = case_when(direction == "Same" ~"Same Direction",
+                           direction == "Diff" ~"Diff Direction"))
 View(cbind(features = plot.accaha.pre$features, coeff.pre = plot.accaha.pre$coeff, coeff.post = plot.accaha.post$coeff))
 
 plot.accaha.new <- filter(plot.accaha, coeff < 5)
 
 plot.accaha.new <- plot.accaha.new %>% 
   dplyr::select(features, years, coeff, group) %>% 
-  pivot_wider(names_from = years, values_from = coeff)
+  pivot_wider(names_from = years, values_from = coeff) %>% 
+  mutate(coeff_diff = `Post-2013` - `Pre-2013`)
+
+plot.accaha.new %>% filter(group == "Same Direction") %>% write_csv("tables/elastic_net_same_dir.csv")
+plot.accaha.new %>% filter(group == "Diff Direction" & abs(coeff_diff) >0.3 )  %>% write_csv("tables/elastic_net_diff_dir.csv")
 
 p.accaha <- ggplot(data = plot.accaha) +
   geom_point(mapping = aes(x = features, y = coeff, group = sig, color = sig)) + 

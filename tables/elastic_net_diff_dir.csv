@@ -1,0 +1,11 @@
+features,Directional Change,features,Directional Change
+BMXBMI,-,bp_cat_meds,+
+BPQ040A,-,bp_dia_mean,+
+BPQ090D,-,bp_med_ace,+
+demo_race,-,bp_med_n_class,+
+DSDCOUNT_x,-,bp_sys_mean,+
+LBDHDD,-,BPXPLS,+
+LBDMONO,-,demo_age_years,+
+LBXLYPCT,-,demo_gender,+
+MCQ080,-,LBXEOPCT,+
+,,MCQ160A,+
