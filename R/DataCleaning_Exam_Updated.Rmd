@@ -1,0 +1,228 @@
+---
+title: "ws"
+output: html_document
+date: "2025-02-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# TODO:
+https://docs.google.com/document/d/1IYLTEWNzi34iagvPAwtEt4nIZdpzWqoQ5zt4LkySbhg/edit?tab=t.0 
+1. merge 2021-2023 data with original exam data 
+2. extract my variables 2013-2023 and demographics variables with SEQN
+3. recode variables based on excel logic, document everything
+4. save RData and uplaod to github
+
+```{r}
+# load packages here
+library(haven)
+library(dplyr)
+source('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/R/funcs.R')
+```
+
+# Load 1999-2020 exam data (nhanesA format)
+```{r}
+rm(list = ls())
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/Examinations.RData')
+```
+
+# Save as dataframe with 1999-2020 data
+```{r}
+exnames <- c("AUX", "BPX", "BMX", 'DXX', 'BPXO', 'OHXDENT')
+
+ex_dat <- ex_dat[names(ex_dat) %in% exnames]
+
+ex_df <- combine_surveys(ex_dat)
+
+save(ex_df, file = "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/Examinations_1999_to_2020.RData")
+```
+
+# Load 2021-2023 data for exam and demographics
+```{r}
+rm(list = ls())
+
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/Examinations_1999_to_2020.RData')
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/Demographics.RData')
+demo_df <- demo_dat$DEMO
+
+BAX_L <- read_xpt("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/exam/BAX_L.xpt")
+BMX_L <- read_xpt("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/exam/BMX_L.xpt")
+BPXO_L <- read_xpt("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/exam/BPXO_L.xpt")
+LUX_L <- read_xpt("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/exam/LUX_L.xpt")
+DEMO_L <- read_xpt("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/demographics/DEMO_L.xpt")
+```
+
+# Merge to create 1999-2023 data
+```{r}
+# Add Year = 2021 to all smaller datasets
+datasets <- list(BAX_L, BMX_L, BPXO_L, LUX_L)
+
+datasets <- lapply(datasets, function(df) {
+  df <- as.data.frame(df)  # Ensure it's a data frame
+  df <- df %>% mutate(Year = '2021')  # Add Year
+  return(df)
+})
+
+# Perform full joins across all datasets
+full_joined_data <- Reduce(function(x, y) full_join(x, y, by = c("SEQN", "Year")), datasets)
+
+# Bind ex_df with the fully joined dataset
+ex_df_joined <- bind_rows(ex_df, full_joined_data)
+
+
+# Merge Demo data
+datasets <- list(DEMO_L)
+datasets <- lapply(datasets, function(df) {
+  df <- as.data.frame(df)  # Ensure it's a data frame
+  df <- df %>% mutate(Year = '2021')  # Add Year
+  return(df)
+})
+demo_df_joined <- bind_rows(demo_df, datasets)
+duplicate_seqn <- demo_df_joined %>%
+  group_by(SEQN, Year) %>%
+  filter(n() > 1)  # Keep only duplicates
+
+# Display duplicate SEQN count
+cat("Number of duplicated SEQN values:", nrow(duplicate_seqn), "\n")
+
+
+# Saving 
+demo_1999_to_2023 <- demo_df_joined
+exam_1999_to_2023 <- ex_df_joined
+save(demo_1999_to_2023, file = "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/demo_1999_to_2023.RData")
+save(exam_1999_to_2023, file = "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/exam_1999_to_2023.RData")
+```
+
+# Extract necessary variables from the 1999-2023 data
+```{r}
+rm(list = ls())
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/exam_1999_to_2023.RData')
+
+exvars <- c(
+  # ID, YEAR
+  "SEQN", "Year",
+  
+  # BPX (Blood Pressure Exam)
+  "BPQ150A", "BPQ150B", "BPQ150C", "BPQ150D", 
+  "BPXPULS", "BPXPTY", "BPXML1", 
+  "BPXSY1", "BPXDI1", "BPAEN1", "BPXSY2", "BPXDI2", "BPAEN2", 
+  "BPXSY3", "BPXDI3", "BPAEN3", "BPXSY4", "BPXDI4", "BPAEN4",
+  "BPXOSY1", "BPXODI1", 
+  "BPXOSY2", "BPXODI2", 
+  "BPXOSY3", "BPXODI3", 
+  "BPXOPLS1", "BPXOPLS2", "BPXOPLS3",
+  
+  # BMX (Body Measurements Exam)
+  "BMXBMI", "BMXWAIST", "BMXHIP",
+  
+  # DXX (Dual-energy X-ray Absorptiometry - DXA Scan)
+  "DXXLSBMD", "DXDTRBMD", "DXDTRPF", "DXXLABMD", 
+  "DXDLAPF", "DXXRABMD", "DXDRAPF",
+  
+  # AUX (Audiometry Exam)
+  "AUAEXSTS", "AUQ020", "AUQ030", 
+  "AUXU1K1R", "AUXU500R", "AUXU1K2R", "AUXU2KR", "AUXU3KR", 
+  "AUXU4KR", "AUXU6KR", "AUXU8KR", "AUXU1K1L", "AUXU500L", 
+  "AUXU1K2L", "AUXU2KL", "AUXU3KL", "AUXU4KL", "AUXU6KL", "AUXU8KL",
+  "AUXR1K1R", "AUXR5CR", "AUXR1K2R", "AUXR2KR", "AUXR3KR", "AUXR4KR", 
+  "AUXR6KR", "AUXR8KR", "AUXR1K1L", "AUXR5CL", "AUXR1K2L", "AUXR2KL", 
+  "AUXR3KL", "AUXR4KL", "AUXR6KL", "AUXR8KL",
+  
+  # OHX (Oral Health Exam - Dental)
+  "OHDEXSTS", "OHAREC", "OHAROCDT", "OHAROCGP", "OHAROCOH", 
+  "OHAROCCI", "OHAROCDE",
+  
+  # BMDAVSAD (Bone Mineral Density - DXA Scan)
+  "BMDAVSAD"
+)
+
+exam_subset <- exam_1999_to_2023 %>%
+  filter(Year %in% c("2013", "2015", "2017", "P", "2021")) %>%
+  select(any_of(exvars))  
+
+missingness <- exam_subset %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage")
+print(missingness)
+
+```
+# Data re-coding
+```{r}
+# Define BP variables for general years and 2021
+bp_vars_general <- c("BPXSY1", "BPXDI1", "BPXSY2", "BPXDI2", "BPXSY3", "BPXDI3", "BPXSY4", "BPXDI4")
+bp_vars_2021 <- c("BPXOSY1", "BPXODI1", "BPXOSY2", "BPXODI2", "BPXOSY3", "BPXODI3")
+# Compute mean and standard deviation separately for 2021 and other years
+bp_stats_general <- exam_subset %>%
+  filter(Year != 2021) %>%
+  summarise(across(all_of(bp_vars_general), list(mean = ~ mean(. , na.rm = TRUE),
+                                                 sd = ~ sd(. , na.rm = TRUE)))) %>%
+  pivot_longer(cols = everything(), names_to = c("Variable", ".value"), names_sep = "_") %>%
+  mutate(Year = "Other Years")
+
+bp_stats_2021 <- exam_subset %>%
+  filter(Year == 2021) %>%
+  summarise(across(all_of(bp_vars_2021), list(mean = ~ mean(. , na.rm = TRUE),
+                                              sd = ~ sd(. , na.rm = TRUE)))) %>%
+  pivot_longer(cols = everything(), names_to = c("Variable", ".value"), names_sep = "_") %>%
+  mutate(Year = "2021")
+# Combine both statistics
+bp_stats_long <- bind_rows(bp_stats_general, bp_stats_2021)
+# Display the results
+print(bp_stats_long)
+
+
+# Since not much fluctuation between BP1-BP3, we will take average of 1,2,3 to create new numerical variables called BPXSY and BPXDI
+# Dual-Energy X-ray 
+# select DXDTRBMD, DXXLABMD based on low correlation with other bmi variables and DXD 
+exam_bp <- exam_subset %>%
+  mutate(
+    BPXSY = ifelse(Year == '2021', 
+                   rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE), 
+                   rowMeans(select(., BPXSY1, BPXSY2, BPXSY3), na.rm = TRUE)),
+    BPXDI = ifelse(Year == '2021', 
+                   rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE), 
+                   rowMeans(select(., BPXDI1, BPXDI2, BPXDI3), na.rm = TRUE))
+  ) %>%
+  select(SEQN, Year, BPXSY, BPXDI, BPXPULS, BMXBMI, DXDTRBMD, DXXLABMD)  # Keep only relevant columns
+
+# removing BMXWAIST since high correlation with BMXBMI
+print(cor.test(exam_subset$BMXBMI, exam_subset$BMXWAIST))
+
+missingness <- exam_bp %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage")
+print(missingness)
+
+# Encode into hearing loss vs noraml based on literature's threshold for normal hearing 
+exam_audio <- exam_subset %>%
+  rowwise() %>%  
+  mutate(hearing_loss = ifelse(
+    any(c(AUXU1K1R, AUXU500R, AUXU1K2R, AUXU2KR, AUXU3KR, 
+          AUXU4KR, AUXU6KR, AUXU8KR, AUXU1K1L, AUXU500L, 
+          AUXU1K2L, AUXU2KL, AUXU3KL, AUXU4KL, AUXU6KL, AUXU8KL) > 21, 
+        na.rm = TRUE), 
+    "No",   # Normal
+    "Yes"   # Hearing Loss
+  )) %>%
+  select(SEQN, Year, hearing_loss)
+table(exam_audio$hearing_loss)
+
+
+exam_2013_to_2023 <- exam_bp %>%
+  left_join(exam_audio, by = c("SEQN", "Year"))
+
+head(exam_2013_to_2023)
+save(exam_2013_to_2023, file = '/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/exam_2013_to_2023.RData')
+```
+
+# Sanity check
+```{r}
+rm(list = ls())
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/exam_2013_to_2023.RData')
+load("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/demo_1999_to_2023.RData")
+```
+
+
+
