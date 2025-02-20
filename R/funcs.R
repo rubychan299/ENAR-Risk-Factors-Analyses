@@ -4,14 +4,12 @@ library(data.table)
 
 # Support function
 select_variable <- function(survey_list, var_names) {
-  lapply(survey_list, function(year_list) {
-    lapply(year_list, function(df) {
-      if(all(var_names %in% names(df))) {
-        dplyr::select(df, all_of(var_names))
-      } else {
-        df
-      }
-    })
+  lapply(survey_list, function(df) {
+    if(all(var_names %in% names(df))) {
+      df
+    } else {
+      df[names(df) %in% var_names]
+    }
   })
 }
 
