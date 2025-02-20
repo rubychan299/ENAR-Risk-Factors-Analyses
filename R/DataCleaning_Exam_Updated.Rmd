@@ -176,13 +176,14 @@ print(bp_stats_long)
 # Since not much fluctuation between BP1-BP3, we will take average of 1,2,3 to create new numerical variables called BPXSY and BPXDI
 # Dual-Energy X-ray 
 # select DXDTRBMD, DXXLABMD based on low correlation with other bmi variables and DXD 
+# 2021 and P is measured by BPXOSY, BPXODI
 exam_bp <- exam_subset %>%
   mutate(
-    BPXSY = ifelse(Year == '2021', 
-                   rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE), 
+    BPXSY = ifelse(Year %in% c('2021', 'P'), 
+                   rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE) + 1.5, 
                    rowMeans(select(., BPXSY1, BPXSY2, BPXSY3), na.rm = TRUE)),
-    BPXDI = ifelse(Year == '2021', 
-                   rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE), 
+    BPXDI = ifelse(Year %in% c('2021', 'P'), 
+                   rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE) - 1.3, 
                    rowMeans(select(., BPXDI1, BPXDI2, BPXDI3), na.rm = TRUE))
   ) %>%
   select(SEQN, Year, BPXSY, BPXDI, BPXPULS, BMXBMI, DXDTRBMD, DXXLABMD)  # Keep only relevant columns
@@ -213,6 +214,10 @@ table(exam_audio$hearing_loss)
 exam_2013_to_2023 <- exam_bp %>%
   left_join(exam_audio, by = c("SEQN", "Year"))
 
+# Define BP control defined as SBP <140 mm Hg and DBP <90 mm Hg.
+exam_2013_to_2023 <- exam_2013_to_2023 %>%
+  mutate(bp_control = ifelse(BPXSY < 140 & BPXDI < 90, 1, 0))
+
 head(exam_2013_to_2023)
 save(exam_2013_to_2023, file = '/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/exam_2013_to_2023.RData')
 ```
@@ -222,6 +227,7 @@ save(exam_2013_to_2023, file = '/Users/taehyo/Library/CloudStorage/Dropbox/NYU/R
 rm(list = ls())
 load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/exam_2013_to_2023.RData')
 load("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/demo_1999_to_2023.RData")
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/Lab_df.RData')
 ```
 
 
