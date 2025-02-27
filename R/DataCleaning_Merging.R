@@ -1,4 +1,13 @@
+library(survey)
+library(gtsummary)
 library(tidyverse)
+library(haven)
+library(remotes)
+library(summarytools)
+library(miceRanger)
+library(doParallel)
+library(caret)
+library(mice)
 # Support functions####
 
 combine_datasets <- function(survey_list, ids_vector, id_column_name) {
@@ -156,6 +165,29 @@ lapply(qdata_2021, function(file) {
   assign(tools::file_path_sans_ext(basename(file)), haven::read_xpt(file), envir = .GlobalEnv)
 })
 
+# Get all objects in the global environment
+all_objects <- ls(envir = .GlobalEnv)
+
+qdatasets <- grep("_L$", all_objects, value = TRUE)
+
+datasets <- mget(qdatasets, envir = .GlobalEnv)
+
+datasets <- select_variable(datasets, quesvars)
+
+datasets <- lapply(datasets, function(df) {
+  df <- as.data.frame(df)  # Ensure it's a data frame
+  df <- df %>% mutate(Year = '2021')  # Add Year
+  return(df)
+})
+
+# Perform full joins across all datasets
+full_joined_data <- Reduce(function(x, y) full_join(x, y, by = c("SEQN", "Year")), datasets)
+
+# full_joined_data <- full_joined_data[colnames(full_joined_data) %in% colnames(ques_df)]
+
+# Bind ques_df with the fully joined dataset
+ques_df_joined <- full_join(ques_df, full_joined_data)
+
 demodata_2021 <- list.files("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data/demographics", full.names = TRUE)
 
 # Read each file and assign it to the global environment
@@ -167,24 +199,22 @@ lapply(demodata_2021, function(file) {
 all_objects <- ls(envir = .GlobalEnv)
 
 # Filter objects that end with "_L"
-qdatasets <- grep("_L$", all_objects, value = TRUE)
+demodata <-  grep("_L$", all_objects, value = TRUE)[!grep("_L$", all_objects, value = TRUE) %in% qdatasets]
 
-datasets <- mget(qdatasets, envir = .GlobalEnv)
+demodatasets <- mget(demodata, envir = .GlobalEnv)
 
-datasets <- lapply(datasets, function(df) {
+demodatasets <- lapply(demodatasets, function(df) {
   df <- as.data.frame(df)  # Ensure it's a data frame
   df <- df %>% mutate(Year = '2021')  # Add Year
   return(df)
 })
 
 # Perform full joins across all datasets
-full_joined_data <- Reduce(function(x, y) full_join(x, y, by = c("SEQN", "Year")), datasets)
-
-full_joined_data <- full_joined_data[colnames(full_joined_data) %in% colnames(ques_df)]
+full_joined_data <- Reduce(function(x, y) full_join(x, y, by = c("SEQN", "Year")), demodatasets)
 
 
 # Bind ques_df with the fully joined dataset
-ques_df_joined <- bind_rows(ques_df, full_joined_data)
+ques_df_joined <- full_join(ques_df_joined, full_joined_data)
 
 # duplicate_seqn <- ques_df_joined %>%
 #   group_by(SEQN, Year) %>%
@@ -276,7 +306,26 @@ ques_df_joined <- ques_df_joined %>%
       .x  == 2 ~ "marginal food security: 1-2",
       .x  == 3 ~ "low food security: 3-5",
       .x  == 4 ~ "very low food security: 6-10",
-      TRUE ~ NA_character_))
+      TRUE ~ NA_character_)),
+      
+    across(starts_with("BPQ"), ~ case_when(
+      .x  == 1 ~ "Yes",
+      .x  == 2 ~ "No",
+      TRUE ~ NA_character_)),
+    
+    HIQ011 = case_when(
+      HIQ011 == 1 ~ "Yes",
+      HIQ011 == 2 ~ "No",
+      TRUE ~ NA_character_),
+    
+    ACD011A = case_when(
+      ACD011A == 1 ~ "English",
+      TRUE ~ "Non-English"),
+    
+    OHQ845 = case_when(
+      OHQ845 %in% c(1:3) ~ "Good and Above",
+      OHQ845 %in% c(4:5) ~ "Fair/Poor",
+      TRUE ~ NA_character_),
   )
 
 # Dietrary####
@@ -312,7 +361,7 @@ lapply(didata_2021, function(file) {
 all_objects <- ls(envir = .GlobalEnv)
 
 # Filter objects that end with "_L"
-di_datasets <- grep("_L$", all_objects, value = TRUE)[!grep("_L$", all_objects, value = TRUE) %in% qdatasets]
+di_datasets <- grep("_L$", all_objects, value = TRUE)[!grep("_L$", all_objects, value = TRUE) %in% c(qdatasets, demodata)]
 
 datasets <- mget(di_datasets, envir = .GlobalEnv)
 
@@ -427,6 +476,8 @@ ex_df_joined <- bind_rows(ex_df, full_joined_data)
 
 
 ## Recoding####
+ex_df_joined <- ex_df_joined %>% 
+  mutate(BPXPULS = ifelse(BPXPULS == 1, "Regular", "Irregular"))
 
 # Define BP variables for general years and 2021
 bp_vars_general <- c("BPXSY1", "BPXDI1", "BPXSY2", "BPXDI2", "BPXSY3", "BPXDI3", "BPXSY4", "BPXDI4")
@@ -454,13 +505,14 @@ print(bp_stats_long)
 # Since not much fluctuation between BP1-BP3, we will take average of 1,2,3 to create new numerical variables called BPXSY and BPXDI
 # Dual-Energy X-ray 
 # select DXDTRBMD, DXXLABMD based on low correlation with other bmi variables and DXD 
+# 2021 and P is measured by BPXOSY, BPXODI
 exam_bp <- ex_df_joined %>%
   mutate(
-    BPXSY = ifelse(Year == '2021', 
-                   rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE), 
+    BPXSY = ifelse(Year %in% c('2021', 'P'), 
+                   rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE) + 1.5, 
                    rowMeans(select(., BPXSY1, BPXSY2, BPXSY3), na.rm = TRUE)),
-    BPXDI = ifelse(Year == '2021', 
-                   rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE), 
+    BPXDI = ifelse(Year %in% c('2021', 'P'), 
+                   rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE) - 1.3, 
                    rowMeans(select(., BPXDI1, BPXDI2, BPXDI3), na.rm = TRUE))
   ) %>%
   select(SEQN, Year, BPXSY, BPXDI, BPXPULS, BMXBMI, DXDTRBMD, DXXLABMD)  # Keep only relevant columns
@@ -570,6 +622,116 @@ dat_hyp_mice_2015 <- mice::complete(miceObj_2015, "all")
 miceObj_2017 <- mice::mice(dat_hyp_cleaned[dat_hyp_cleaned$Year == "P",], method = "cart")
 dat_hyp_mice_2017 <- mice::complete(miceObj_2017, "all")
 
-# Save the data
-save(dat_full_2013_2020, dat_full_2021, dat_hyp_cleaned, dat_hyp_mice_2013, dat_hyp_mice_2015, dat_hyp_mice_2017,
+# Save the Imputed data
+save(dat_full_2013_2020, dat_full_2021, dat_hyp_cleaned, miceObj_2013, miceObj_2015, miceObj_2017, dat_hyp_mice_2013, dat_hyp_mice_2015, dat_hyp_mice_2017,
      file = "data/cleaned/dat_hyp_mice.RData")
+
+
+## Standardize the data####
+
+categorical_vars <- dat_hyp_cleaned %>% select(where(is.character), where(is.factor)) %>% colnames()
+# hearing_loss problematic - only 1 level,  all yes in year 2013 and 2021
+# BPXPULS problematic - all missing in year 2017
+dat_hyp_mice_2013_cat <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>% 
+  mutate(across(where(is.character), as.factor))
+  x <- x[colnames(x) %in% categorical_vars]
+  x <- predict(dummyVars("~ .", data = x), x)})
+
+dat_hyp_mice_2015_cat <- lapply(dat_hyp_mice_2015, function(x){x <- x %>% 
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>%
+  mutate(across(where(is.character), as.factor))
+  x <- x[colnames(x) %in% categorical_vars]
+  x <- predict(dummyVars("~ .", data = x), x)})
+
+dat_hyp_mice_2017_cat <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>%
+  mutate(across(where(is.character), as.factor))
+  x <- x[colnames(x) %in% categorical_vars]})
+
+dat_hyp_mice_2013_continuous <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  x <- x[!colnames(x) %in% categorical_vars]
+  x <- predict(preProcess(x, method = c("center", "scale")), x)})
+
+dat_hyp_mice_2015_continuous <- lapply(dat_hyp_mice_2015, function(x){x <- x %>%
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  x <- x[!colnames(x) %in% categorical_vars]
+  x <- predict(preProcess(x, method = c("center", "scale")), x)})
+
+dat_hyp_mice_2017_continuous <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
+  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
+         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
+         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  x <- x[!colnames(x) %in% categorical_vars]
+  x <- predict(preProcess(x, method = c("center", "scale")), x)})
+
+svy_vars_2013 <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
+  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
+         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
+         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+
+svy_vars_2015 <- lapply(dat_hyp_mice_2015, function(x){x <- x %>%
+  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
+         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
+         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+
+svy_vars_2017 <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
+  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
+         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
+         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+
+dat_hyp_2013_std <- Map(cbind, svy_vars_2013, dat_hyp_mice_2013_cat, dat_hyp_mice_2013_continuous)
+dat_hyp_2015_std <- Map(cbind, svy_vars_2015, dat_hyp_mice_2015_cat, dat_hyp_mice_2015_continuous)
+dat_hyp_2017_std <- Map(cbind, svy_vars_2017, dat_hyp_mice_2017_cat, dat_hyp_mice_2017_continuous)
+
+
+save(dat_hyp_2013_std, dat_hyp_2015_std, dat_hyp_2017_std,file = "data/cleaned/dat_hyp_std_2013_2020.RData")
+
+## Bootsrapping ####
+# split into 80% training and 20% testing
+
+set.seed(2024)
+dat_hyp_2013_std_ind <- sample(1:nrow(dat_hyp_2013_std[[1]]), 0.8*nrow(dat_hyp_2013_std[[1]]))
+dat_hyp_2013_std_train <- lapply(dat_hyp_2013_std, function(x){x[dat_hyp_2013_std_ind, ]})
+dat_hyp_2013_std_test <- lapply(dat_hyp_2013_std, function(x){x[-dat_hyp_2013_std_ind, ]})
+
+dat_hyp_2015_std_ind <- sample(1:nrow(dat_hyp_2015_std[[1]]), 0.8*nrow(dat_hyp_2015_std[[1]]))
+dat_hyp_2015_std_train <- lapply(dat_hyp_2015_std, function(x){x[dat_hyp_2015_std_ind, ]})
+dat_hyp_2015_std_test <- lapply(dat_hyp_2015_std, function(x){x[-dat_hyp_2015_std_ind, ]})
+
+dat_hyp_2017_std_ind <- sample(1:nrow(dat_hyp_2017_std[[1]]), 0.8*nrow(dat_hyp_2017_std[[1]]))
+dat_hyp_2017_std_train <- lapply(dat_hyp_2017_std, function(x){x[dat_hyp_2017_std_ind, ]})
+dat_hyp_2017_std_test <- lapply(dat_hyp_2017_std, function(x){x[-dat_hyp_2017_std_ind, ]})
+
+
+# Perform resampling to create multiple training sets
+
+num_replicates <- 50  
+dat_hyp_2013_samp <- dat_hyp_2015_samp <- dat_hyp_2017_samp <- vector("list", length = num_replicates)
+
+for (i in 1:num_replicates) {
+  dat_hyp_2013_samp[[i]] <- lapply(dat_hyp_2013_std_train, function(x){x[sample(1:nrow(dat_hyp_2013_std_train[[1]]), replace = TRUE), ]})
+  
+  dat_hyp_2015_samp[[i]] <- lapply(dat_hyp_2015_std_train, function(x){x[sample(1:nrow(dat_hyp_2015_std_train[[1]]), replace = TRUE), ]})
+  
+  dat_hyp_2017_samp[[i]] <- lapply(dat_hyp_2017_std_train, function(x){x[sample(1:nrow(dat_hyp_2017_std_train[[1]]), replace = TRUE), ]})
+  
+}
+
+save(dat_hyp_2013_std_train, dat_hyp_2013_std_test, dat_hyp_2015_std_train, 
+     dat_hyp_2015_std_test, dat_hyp_2017_std_train,
+     dat_hyp_2017_std_test, dat_hyp_2013_samp,
+     dat_hyp_2015_samp, dat_hyp_2017_samp,
+     file = "data/cleaned/dat_train_test_bootstrapped_2013_2020.RData")
+
