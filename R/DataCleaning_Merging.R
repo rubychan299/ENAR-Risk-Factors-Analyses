@@ -696,6 +696,16 @@ dat_hyp_2015_std <- Map(cbind, svy_vars_2015, dat_hyp_mice_2015_cat, dat_hyp_mic
 dat_hyp_2017_std <- Map(cbind, svy_vars_2017, dat_hyp_mice_2017_cat, dat_hyp_mice_2017_continuous)
 
 
+dat_hyp_2013_std <- lapply(dat_hyp_2013_std, function(x){x <- x %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+
+dat_hyp_2015_std <- lapply(dat_hyp_2015_std, function(x){x <- x %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+
+dat_hyp_2017_std <- lapply(dat_hyp_2017_std, function(x){x <- x %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+
+
 save(dat_hyp_2013_std, dat_hyp_2015_std, dat_hyp_2017_std,file = "data/cleaned/dat_hyp_std_2013_2020.RData")
 
 ## Bootsrapping ####
