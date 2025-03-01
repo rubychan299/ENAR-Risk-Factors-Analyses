@@ -19,6 +19,8 @@ https://docs.google.com/document/d/1IYLTEWNzi34iagvPAwtEt4nIZdpzWqoQ5zt4LkySbhg/
 # load packages here
 library(haven)
 library(dplyr)
+library(rpms)
+library(ggplot2)
 source('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/R/funcs.R')
 ```
 
@@ -229,6 +231,198 @@ load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR
 load("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/1999_to_2023_original/demo_1999_to_2023.RData")
 load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/Lab_df.RData')
 ```
+
+# Xgboost/RF based feature selection
+```{r}
+rm(list = ls())
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_train_test_bootstrapped_2013_2020.RData')
+
+extract_feature_importance <- function(model, model_type = c("gb", "rf")) {
+  # Xgboost/RF based feature selection
+  # feature importance calculation:
+  # - xgb$level[[1]]$frame shows var, id, and loss
+  # - rf$tree[[i]]$frame shows i-th tree's var, id, loss, etc. 
+  # - if parent id is i, child nodes' ids are defined as i*2, i*2+1, i*2+2, etc. 
+  # - this means that parent ids are powers of 2's 
+  # - loss is based on MSE loss (jasa)
+  # - define loss reduction at node i = parent of node i's loss - node i's loss
+  # - accumulate all loss reduction grouped by the variables 
+  # Basically, more loss reduction means more feature important
+
+  # Ensure valid model_type input
+  model_type <- match.arg(model_type)
+
+  # Handle RPMS Gradient Boosting (GB)
+  if (model_type == "gb") {
+    if (!is.data.frame(model$level[[1]]$frame)) {
+      stop("Invalid RPMS Boost model: Missing frame data.")
+    }
+    
+    model_frame <- model$level[[1]]$frame
+
+    # Remove "Root" node
+    model_frame <- model_frame %>% filter(var != "Root")
+
+    # Compute Parent Node ID
+    model_frame <- model_frame %>%
+      mutate(Parent_Node = ifelse(node == 1, NA, floor(node / 2)))
+
+    # Merge parent node loss
+    feature_importance <- model_frame %>%
+      left_join(model_frame %>% select(node, loss), by = c("Parent_Node" = "node"), suffix = c("", "_parent")) %>%
+      mutate(Loss_Reduction = loss_parent - loss) %>%
+      group_by(var) %>%
+      summarize(Total_Loss_Reduction = sum(Loss_Reduction, na.rm = TRUE)) %>%
+      arrange(desc(Total_Loss_Reduction)) %>%
+      rename(Feature = var)
+
+    plot_title <- "Feature Importance in RPMS Boosting (GB)"
+    
+  } else if (model_type == "rf") {
+    # Handle RPMS Random Forest (RF)
+    if (!is.list(model$tree)) {
+      stop("Invalid RPMS Random Forest model: Missing tree list.")
+    }
+    
+    # Extract all trees' frames
+    all_frames <- lapply(model$tree, function(tree) tree$frame)
+
+    # Combine all frames into one large data frame
+    model_frame <- bind_rows(all_frames, .id = "Tree_ID")
+
+    # Remove "Root" node
+    model_frame <- model_frame %>% filter(var != "Root")
+
+    # Compute Parent Node ID
+    model_frame <- model_frame %>%
+      mutate(Parent_Node = ifelse(node == 1, NA, floor(node / 2)))
+
+    # Merge parent node loss
+    feature_importance <- model_frame %>%
+      left_join(model_frame %>% select(node, loss), by = c("Parent_Node" = "node"), suffix = c("", "_parent")) %>%
+      mutate(Loss_Reduction = loss_parent - loss) %>%
+      group_by(var) %>%
+      summarize(Total_Loss_Reduction = sum(Loss_Reduction, na.rm = TRUE)) %>%
+      arrange(desc(Total_Loss_Reduction)) %>%
+      rename(Feature = var)
+
+    plot_title <- "Feature Importance in RPMS Random Forest (RF)"
+  }
+
+  #print(feature_importance)
+  return(feature_importance) 
+}
+
+# Function to extract selected features from one imputed dataset
+run_model_and_extract_features <- function(data, outcome_var, vars, mode = c("gb", "rf")) {
+  # Define survey-related variables to exclude
+  survey_vars <- c("svy_strata", "svy_weight_mec", "svy_psu")
+
+  # Remove survey-related variables from vars
+  vars <- setdiff(vars, survey_vars)
+
+  # Construct formula dynamically
+  formula_str <- paste(outcome_var, "~", paste(vars, collapse = " + "))
+  formula_obj <- as.formula(formula_str)
+
+  # Match mode input
+  mode <- match.arg(mode)
+
+  # Train the model (either "gb" or "rf")
+  if (mode == "gb") {
+    model <- rpms_boost(
+      formula_obj, 
+      data = data, 
+      strata = ~svy_strata, 
+      weights = ~svy_weight_mec, 
+      clusters = ~svy_psu, 
+      pval = 0.05
+    )
+  } else if (mode == "rf") {
+    model <- rpms_forest(
+      formula_obj, 
+      data = data, 
+      strata = ~svy_strata, 
+      weights = ~svy_weight_mec, 
+      clusters = ~svy_psu, 
+      f_size = 100, 
+      cores = 5
+    )
+  }
+
+  # Extract feature importance based on mode
+  importance_df <- extract_feature_importance(model, model_type = mode)
+
+  # Return feature importance data frame
+  return(importance_df)
+}
+# Function to apply majority voting on feature lists
+majority_vote_features <- function(feature_lists, vars, n = 25) {
+  # Count occurrences of each feature
+  feature_counts <- table(unlist(feature_lists))  
+  feature_df <- as.data.frame(feature_counts)  # Convert to data frame
+
+  # Convert Feature column to character (Fixes factor issue)
+  feature_df$Var1 <- as.character(feature_df$Var1) 
+  colnames(feature_df) <- c("Feature", "Count")  # Rename columns
+
+  # ✅ Filter only features that exist in vars
+  feature_df <- feature_df[feature_df$Feature %in% vars, ]
+
+  # Sort by count (highest first) and return top n features
+  feature_df <- feature_df[order(-feature_df$Count), ]  # Descending sort
+  feature_df <- head(feature_df, n)  # Select top n features
+
+  return(feature_df)
+}
+
+
+# CODE FOR RUNNING for a given year (e.g. dat_hyp_2013_samp)
+# need to remove special characters because rpms is stupid 
+clean_variable_names <- function(df) {
+  names(df) <- gsub("[^A-Za-z0-9_]", "_", names(df))  # Replace all non-alphanumeric characters with "_"
+  names(df) <- gsub("_+", "_", names(df))  # Remove duplicate underscores
+  names(df) <- gsub("^_|_$", "", names(df))  # Remove leading/trailing underscores
+  return(df)
+}
+
+# PARAMETERS THAT NEED TO BE CHANGED:
+# 1. data (e.g. dat_hyp_2013_samp)
+# 2. outcome_var
+# 3. vars (IMPORTANT to double check)
+# 4. mode (e.g. rf for random forest,  gb for gradient boost)
+dat_hyp_2013_samp <- lapply(dat_hyp_2013_samp, function(boot_sample) {
+  lapply(boot_sample, clean_variable_names)
+})
+outcome_var <- "bp_control_jnc7"
+all_vars <- colnames(dat_hyp_2013_samp[[1]][[1]])
+# These are the PREDICTORS, so make sure some variables are not included. 
+vars <- setdiff(all_vars, c("svy_subpop_htn", 'svy_subpop_chol', "htn_accaha", "htn_jnc7", 'bp_control_jnc7', 'bp_control_140_90', 'bp_control_accaha', 'bp_control_130_80', 'htn_aware.Yes', "htn_resistant_jnc7_Yes", "htn_resistant_accaha_Yes" , "htn_resistant_jnc7_thz_Yes", "htn_resistant_accaha_thz_Yes" ))
+mode <- 'gb'
+
+# Run feature selection on all 5 imputed datasets for each bootstrap sample
+bootstrap_selected_features <- lapply(dat_hyp_2013_samp, function(boot_sample) {
+  imputed_feature_sets <- lapply(boot_sample, function(data) {
+    data[vars] <- lapply(data[vars], as.numeric)
+    data[[outcome_var]] <- as.numeric(data[[outcome_var]])
+    
+    run_model_and_extract_features(data, outcome_var, vars, mode=mode)  
+  })
+  
+  # Get the top 25 features from 5 imputed datasets
+  majority_vote_features(imputed_feature_sets, vars, n = 25)
+})
+
+# Perform majority voting over 50 bootstrapped datasets (returning top 25)
+final_selected_features <- majority_vote_features(bootstrap_selected_features, vars, n = 25)
+
+# Save the final selected features to CSV
+write.csv(final_selected_features, paste0("final_features_for_", mode, ".csv"), row.names = FALSE)
+
+# Print the final selected features
+print(final_selected_features)
+```
+
 
 
 
