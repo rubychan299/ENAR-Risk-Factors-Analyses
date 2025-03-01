@@ -653,7 +653,8 @@ dat_hyp_mice_2017_cat <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
          -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
          -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>%
   mutate(across(where(is.character), as.factor))
-  x <- x[colnames(x) %in% categorical_vars]})
+  x <- x[colnames(x) %in% categorical_vars]
+  x <- predict(dummyVars("~ .", data = x), x)})
 
 dat_hyp_mice_2013_continuous <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
   select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
@@ -695,16 +696,26 @@ dat_hyp_2013_std <- Map(cbind, svy_vars_2013, dat_hyp_mice_2013_cat, dat_hyp_mic
 dat_hyp_2015_std <- Map(cbind, svy_vars_2015, dat_hyp_mice_2015_cat, dat_hyp_mice_2015_continuous)
 dat_hyp_2017_std <- Map(cbind, svy_vars_2017, dat_hyp_mice_2017_cat, dat_hyp_mice_2017_continuous)
 
+remove <- c('bp_sys_mean', 'bp_dia_mean', 'cc_bmi.<25', 'cc_bmi.25 to <30', 'cc_bmi.30 to <35', 'cc_bmi.35+', 'svy_subpop_chol', 'svy_subpop_htn', 'htn_accaha', 'htn_jnc7','ACD011A.Non-English',
+            'DPQ010', 'DPQ020', 'DPQ030', 'DPQ040', 'DPQ050', 'DPQ060', 'DPQ070', 'DPQ080', 'DPQ090',
+            'IMQ011.Yes', 'IMQ020.Yes', 'WHQ070.Yes')
+
 
 dat_hyp_2013_std <- lapply(dat_hyp_2013_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  na.omit()})
 
 dat_hyp_2015_std <- lapply(dat_hyp_2015_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  na.omit()})
 
 dat_hyp_2017_std <- lapply(dat_hyp_2017_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))])})
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  na.omit()})
 
+# View(dat_hyp_2013_std[[1]] %>%
+#   summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+#   pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage"))
 
 save(dat_hyp_2013_std, dat_hyp_2015_std, dat_hyp_2017_std,file = "data/cleaned/dat_hyp_std_2013_2020.RData")
 
@@ -744,4 +755,5 @@ save(dat_hyp_2013_std_train, dat_hyp_2013_std_test, dat_hyp_2015_std_train,
      dat_hyp_2017_std_test, dat_hyp_2013_samp,
      dat_hyp_2015_samp, dat_hyp_2017_samp,
      file = "data/cleaned/dat_train_test_bootstrapped_2013_2020.RData")
+
 
