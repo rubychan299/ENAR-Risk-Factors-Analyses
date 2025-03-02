@@ -543,8 +543,7 @@ table(exam_audio$hearing_loss)
 ex_df_final <- exam_bp %>%
   left_join(exam_audio, by = c("SEQN", "Year"))
 
-# Merge data
-# Merge with cardioStatsUSA
+# Merge with cardioStatsUSAb####
 nhanes_data <- rename(nhanes_data, SEQN = svy_id)
 
 table(nhanes_data$svy_year)
@@ -588,7 +587,7 @@ d <- duplicated(t(dat_full_hyp))
 d <- d[d == T]
 
 # Drop variables and subset based on discussion
-dat_hyp <- dat_full_hyp[dat_full_hyp$htn_accaha == "Yes",]
+dat_hyp <- dat_full_hyp[dat_full_hyp$htn_jnc7 == "Yes",]
 
 chols <- c("chol_ldl_5cat", "chol_nonhdl_5cat", "chol_hdl")
 
@@ -597,6 +596,51 @@ dat_hyp <- dat_hyp %>%
          -chol_total, -chol_total_gteq_200,-chol_total_gteq_240, chol_hdl, -chol_hdl_low, 
          -chol_trig, -chol_trig_gteq_150, -chol_ldl, -chol_ldl_lt_70, -chol_ldl_gteq_70,
          -chol_ldl_gteq_190, -chol_nonhdl,-chol_nonhdl_lt_100, -chol_nonhdl_gteq_100, -chol_nonhdl_gteq_220)
+
+
+only_keep <- c(
+  # Survey variables + identifier
+  "svy_psu", "svy_strata", "svy_weight_mec", "SEQN", "Year",
+  
+  # Demographics (excluding pregnancy)
+  "demo_age_years", "demo_age_cat",
+  "demo_race", "demo_gender",
+  
+  # Outcomes (JNC7 and ACC/AHA)
+  "bp_control_jnc7", "bp_control_accaha",
+  
+  # Hypertension-related awareness and resistant hypertension status
+  "htn_aware", "htn_resistant_jnc7", "htn_resistant_accaha",
+  
+  # Blood pressure medication use (for JNC7 or ACC/AHA)
+  "bp_med_use", "bp_med_recommended_jnc7", "bp_med_recommended_accaha",
+  "bp_med_n_class","bp_med_n_pills",
+  
+  # Blood pressure medication classes
+  "bp_med_ace", "bp_med_aldo", "bp_med_alpha", 
+  "bp_med_angioten", "bp_med_beta", "bp_med_ccb", 
+  "bp_med_ccb_dh", "bp_med_ccb_ndh", "bp_med_central",
+  "bp_med_renin_inhibitors", "bp_med_vasod", "bp_med_diur_loop", 
+  "bp_med_diur_Ksparing", "bp_med_diur_thz",
+  
+  # Comorbidities
+  "cc_smoke",
+  "cc_diabetes", "cc_ckd", "cc_egfr_lt60", "cc_acr_gteq30",
+  "cc_cvd_mi", "cc_cvd_chd", "cc_cvd_stroke",
+  "cc_cvd_ascvd", "cc_cvd_hf", "cc_cvd_any",
+  "cc_acr", "cc_egfr", "cc_hba1c",
+  
+  # Keep the rest (excluding unspecified BP_ and HTN_ variables)
+  "INDFMMPI", "WHD010", "WHD020", "WHD050",
+  "OHQ030", "OHQ033", "weight_change", "phq9",
+  "LBXWBCSI", "LBDMONO", "LBDEONO", "LBDBANO", 
+  "LBXRBCSI", "LBXHGB", "LBDHDD", "LBXTC",
+  "LBXBPB", "LBXBCD", "LBXTHG", "LBXBSE",
+  "LBXCOT", "URXUMS", "URXUCR.x.x.x", "BMXBMI"
+)
+
+dat_hyp <- dat_hyp %>% 
+  select(all_of(only_keep))
 
 
 ## Missing Imputation####
@@ -633,89 +677,79 @@ categorical_vars <- dat_hyp_cleaned %>% select(where(is.character), where(is.fac
 # hearing_loss problematic - only 1 level,  all yes in year 2013 and 2021
 # BPXPULS problematic - all missing in year 2017
 dat_hyp_mice_2013_cat <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>% 
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha) %>% 
   mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars]
   x <- predict(dummyVars("~ .", data = x), x)})
 
 dat_hyp_mice_2015_cat <- lapply(dat_hyp_mice_2015, function(x){x <- x %>% 
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>%
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha) %>% 
   mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars]
   x <- predict(dummyVars("~ .", data = x), x)})
 
 dat_hyp_mice_2017_cat <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS) %>%
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha) %>% 
   mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars]
   x <- predict(dummyVars("~ .", data = x), x)})
 
 dat_hyp_mice_2013_continuous <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha) 
   x <- x[!colnames(x) %in% categorical_vars]
   x <- predict(preProcess(x, method = c("center", "scale")), x)})
 
 dat_hyp_mice_2015_continuous <- lapply(dat_hyp_mice_2015, function(x){x <- x %>%
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha) 
   x <- x[!colnames(x) %in% categorical_vars]
   x <- predict(preProcess(x, method = c("center", "scale")), x)})
 
 dat_hyp_mice_2017_continuous <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
-  select(-Year, -svy_subpop_htn, -htn_accaha, -htn_jnc7,
-         -SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -svy_year,
-         -bp_control_jnc7, -bp_control_accaha, -bp_control_140_90, -bp_control_130_80, - hearing_loss, -BPXPULS)
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7, -bp_control_accaha)
   x <- x[!colnames(x) %in% categorical_vars]
   x <- predict(preProcess(x, method = c("center", "scale")), x)})
 
 svy_vars_2013 <- lapply(dat_hyp_mice_2013, function(x){x <- x %>% 
-  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
-         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
-         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+  select(Year, SEQN,svy_weight_mec, svy_psu, svy_strata,
+         bp_control_jnc7, bp_control_accaha)})
 
 svy_vars_2015 <- lapply(dat_hyp_mice_2015, function(x){x <- x %>%
-  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
-         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
-         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+  select(Year, SEQN,svy_weight_mec, svy_psu, svy_strata,
+         bp_control_jnc7, bp_control_accaha)})
 
 svy_vars_2017 <- lapply(dat_hyp_mice_2017, function(x){x <- x %>%
-  select(Year, svy_subpop_htn, htn_accaha, htn_jnc7,
-         SEQN,svy_weight_mec, svy_psu, svy_strata, svy_year,
-         bp_control_jnc7, bp_control_accaha, bp_control_140_90, bp_control_130_80)})
+  select(Year, SEQN,svy_weight_mec, svy_psu, svy_strata,
+         bp_control_jnc7, bp_control_accaha)})
 
 dat_hyp_2013_std <- Map(cbind, svy_vars_2013, dat_hyp_mice_2013_cat, dat_hyp_mice_2013_continuous)
 dat_hyp_2015_std <- Map(cbind, svy_vars_2015, dat_hyp_mice_2015_cat, dat_hyp_mice_2015_continuous)
 dat_hyp_2017_std <- Map(cbind, svy_vars_2017, dat_hyp_mice_2017_cat, dat_hyp_mice_2017_continuous)
 
-remove <- c('bp_sys_mean', 'bp_dia_mean', 'cc_bmi.<25', 'cc_bmi.25 to <30', 'cc_bmi.30 to <35', 'cc_bmi.35+', 'svy_subpop_chol', 'svy_subpop_htn', 'htn_accaha', 'htn_jnc7','ACD011A.Non-English',
-            'DPQ010', 'DPQ020', 'DPQ030', 'DPQ040', 'DPQ050', 'DPQ060', 'DPQ070', 'DPQ080', 'DPQ090',
-            'IMQ011.Yes', 'IMQ020.Yes', 'WHQ070.Yes')
-
 
 dat_hyp_2013_std <- lapply(dat_hyp_2013_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -Year) %>%
   na.omit()})
 
 dat_hyp_2015_std <- lapply(dat_hyp_2015_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -Year) %>%
   na.omit()})
 
 dat_hyp_2017_std <- lapply(dat_hyp_2017_std, function(x){x <- x %>%
-  select(colnames(x)[!grepl("\\.No$", colnames(x))], -remove) %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -Year) %>%
   na.omit()})
 
-# View(dat_hyp_2013_std[[1]] %>%
-#   summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
-#   pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage"))
+
+# Check missingness
+
+View(dat_hyp_2013_std[[1]] %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage"))
 
 save(dat_hyp_2013_std, dat_hyp_2015_std, dat_hyp_2017_std,file = "data/cleaned/dat_hyp_std_2013_2020.RData")
 
