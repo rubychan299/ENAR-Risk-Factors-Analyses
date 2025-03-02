@@ -21,6 +21,7 @@ library(haven)
 library(dplyr)
 library(rpms)
 library(ggplot2)
+library(pROC)
 source('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/R/funcs.R')
 ```
 
@@ -349,7 +350,6 @@ run_model_and_extract_features <- function(data, outcome_var, vars, mode = c("gb
       cores = 5
     )
   }
-
   # Extract feature importance based on mode
   importance_df <- extract_feature_importance(model, model_type = mode)
 
@@ -366,7 +366,7 @@ majority_vote_features <- function(feature_lists, vars, n = 25) {
   feature_df$Var1 <- as.character(feature_df$Var1) 
   colnames(feature_df) <- c("Feature", "Count")  # Rename columns
 
-  # ✅ Filter only features that exist in vars
+  # Filter only features that exist in vars
   feature_df <- feature_df[feature_df$Feature %in% vars, ]
 
   # Sort by count (highest first) and return top n features
@@ -388,40 +388,133 @@ clean_variable_names <- function(df) {
 
 # PARAMETERS THAT NEED TO BE CHANGED:
 # 1. data (e.g. dat_hyp_2013_samp)
-# 2. outcome_var
-# 3. vars (IMPORTANT to double check)
+# 2. outcome_var (bp_control_jnc7 or bp_control accaha)
+# 3. vars (either vars_for_jnc7 or vars_for_accaha)
 # 4. mode (e.g. rf for random forest,  gb for gradient boost)
-dat_hyp_2013_samp <- lapply(dat_hyp_2013_samp, function(boot_sample) {
+dat_hyp_2015_samp <- lapply(dat_hyp_2015_samp, function(boot_sample) {
   lapply(boot_sample, clean_variable_names)
 })
+all_vars <- colnames(dat_hyp_2015_samp[[1]][[1]])
+vars_for_jnc7 <- setdiff(all_vars, c('bp_control_jnc7', 'bp_control_accaha', 'SEQN', 'bp_med_recommended_accaha', 'htn_resistant_accaha.Yes'))
+vars_for_accaha <- setdiff(all_vars, c('bp_control_jnc7', 'bp_control_accaha', 'SEQN', 'bp_med_recommended_jnc7', 'htn_resistant_jnc7.Yes'))
+
 outcome_var <- "bp_control_jnc7"
-all_vars <- colnames(dat_hyp_2013_samp[[1]][[1]])
-# These are the PREDICTORS, so make sure some variables are not included. 
-vars <- setdiff(all_vars, c("svy_subpop_htn", 'svy_subpop_chol', "htn_accaha", "htn_jnc7", 'bp_control_jnc7', 'bp_control_140_90', 'bp_control_accaha', 'bp_control_130_80', 'htn_aware.Yes', "htn_resistant_jnc7_Yes", "htn_resistant_accaha_Yes" , "htn_resistant_jnc7_thz_Yes", "htn_resistant_accaha_thz_Yes" ))
+vars <- vars_for_jnc7 
 mode <- 'gb'
 
 # Run feature selection on all 5 imputed datasets for each bootstrap sample
-bootstrap_selected_features <- lapply(dat_hyp_2013_samp, function(boot_sample) {
+bootstrap_selected_features <- lapply(dat_hyp_2015_samp, function(boot_sample) {
   imputed_feature_sets <- lapply(boot_sample, function(data) {
-    data[vars] <- lapply(data[vars], as.numeric)
-    data[[outcome_var]] <- as.numeric(data[[outcome_var]])
-    
-    run_model_and_extract_features(data, outcome_var, vars, mode=mode)  
+    tryCatch({
+      # Convert outcome variable to numeric
+      data[[outcome_var]] <- as.numeric(data[[outcome_var]])
+      
+      # Run feature selection
+      run_model_and_extract_features(data, outcome_var, vars, mode=mode)
+      
+    }, error = function(e) {
+      cat("Skipping dataset due to error:", conditionMessage(e), "\n")
+      return(NULL)  # Return NULL if error occurs
+    })
   })
   
-  # Get the top 25 features from 5 imputed datasets
-  majority_vote_features(imputed_feature_sets, vars, n = 25)
+  # Remove failed runs (NULL values)
+  imputed_feature_sets <- Filter(Negate(is.null), imputed_feature_sets)
+  
+  # Get the top 25 features from successful datasets
+  if (length(imputed_feature_sets) > 0) {
+    majority_vote_features(imputed_feature_sets, vars, n = 25)
+  } else {
+    cat("Skipping bootstrap sample due to all failures.\n")
+    return(NULL)  # Skip this bootstrap if all 5 datasets fail
+  }
 })
+
+# Remove failed bootstrap samples
+bootstrap_selected_features <- Filter(Negate(is.null), bootstrap_selected_features)
 
 # Perform majority voting over 50 bootstrapped datasets (returning top 25)
 final_selected_features <- majority_vote_features(bootstrap_selected_features, vars, n = 25)
 
 # Save the final selected features to CSV
-write.csv(final_selected_features, paste0("final_features_for_", mode, ".csv"), row.names = FALSE)
+write.csv(final_selected_features, paste0("final_features_for_", mode, "2015.csv"), row.names = FALSE)
 
 # Print the final selected features
 print(final_selected_features)
 ```
+
+# Evaluate Xgboost
+```{r}
+features_path <- "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/selected features/jnc7/final_features_for_gb2013.csv"
+# Read the selected features as a vector
+selected_features <- read.csv(features_path, stringsAsFactors = FALSE)$Feature
+
+library(pROC)  # For AUC calculation
+
+# Initialize list to store AUC values
+auc_values <- vector("numeric", length(dat_hyp_2013_std_train))
+# Apply variable name cleaning to all test datasets
+dat_hyp_2013_std_train <- lapply(dat_hyp_2013_std_train, function(train_data) {
+  clean_variable_names(train_data)
+})
+dat_hyp_2013_std_test <- lapply(dat_hyp_2013_std_test, function(test_data) {
+  clean_variable_names(test_data)
+})
+
+# Loop over 5 imputed datasets in the training set
+xgb_models <- lapply(dat_hyp_2013_std_train, function(train_data) {
+  
+  # Convert selected predictors to numeric (excluding survey variables)
+  train_data[[outcome_var]] <- as.numeric(train_data[[outcome_var]])
+
+  # Define formula dynamically
+  formula_obj <- as.formula(paste("bp_control_jnc7 ~", paste(selected_features, collapse = " + ")))
+
+  # Train model
+  xgb <- rpms_boost(
+    formula_obj, 
+    data = train_data, 
+    strata = ~svy_strata, 
+    weights = ~svy_weight_mec, 
+    clusters = ~svy_psu, 
+    pval = 0.05
+  )
+  
+  return(xgb)
+})
+
+# Function to convert predictions to binary (0/1)
+binarize_predictions <- function(preds) {
+  ifelse(preds >= 1.5, 2, 1)
+}
+
+# Initialize list to store AUC values
+auc_values <- vector("numeric", length(dat_hyp_2013_std_test))
+
+# Loop over 5 imputed test datasets
+for (i in seq_along(dat_hyp_2013_std_test)) {
+  test_data <- dat_hyp_2013_std_test[[i]]
+
+  # Convert selected predictors to numeric
+  test_data[[outcome_var]] <- as.numeric(test_data[[outcome_var]])
+
+  # Get predictions
+  preds <- predict(xgb_models[[i]], newdata = test_data)
+
+    # Convert to binary classification
+  preds_binary <- binarize_predictions(preds)
+
+  # Compute AUC
+  auc_values[i] <- auc(roc(test_data$bp_control_jnc7, preds_binary))
+}
+
+# Compute mean AUC over the 5 test datasets
+mean_auc <- mean(auc_values)
+print(paste("Mean AUC/ROC:", round(mean_auc, 4)))
+
+```
+
+
 
 
 
