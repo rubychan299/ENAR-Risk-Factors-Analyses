@@ -51,7 +51,7 @@ process_dataset <- function(dataset, outcome_var, predictor_vars, alpha = 0.5, k
   )
   
   # Extract feature importance
-  feature_importance <- coef(elastic_net_model, s = "lambda.min")
+  feature_importance <- elastic_net_model$model$min$beta
   feature_importance <- as.data.frame(as.matrix(feature_importance))
   feature_importance$Feature <- rownames(feature_importance)
   colnames(feature_importance) <- c("Importance", "Feature")
