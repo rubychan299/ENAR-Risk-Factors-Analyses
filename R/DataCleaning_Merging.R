@@ -325,7 +325,7 @@ ques_df_joined <- ques_df_joined %>%
     OHQ845 = case_when(
       OHQ845 %in% c(1:3) ~ "Good and Above",
       OHQ845 %in% c(4:5) ~ "Fair/Poor",
-      TRUE ~ NA_character_),
+      TRUE ~ NA_character_)
   )
 
 # Dietrary####
@@ -632,7 +632,7 @@ only_keep <- c(
   
   # Keep the rest (excluding unspecified BP_ and HTN_ variables)
   "INDFMMPI", "WHD010", "WHD020", "WHD050",
-  "OHQ030", "OHQ033", "weight_change", "phq9",
+  "weight_change", "phq9",
   "LBXWBCSI", "LBDMONO", "LBDEONO", "LBDBANO", 
   "LBXRBCSI", "LBXHGB", "LBDHDD", "LBXTC",
   "LBXBPB", "LBXBCD", "LBXTHG", "LBXBSE",

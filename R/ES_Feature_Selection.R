@@ -16,13 +16,12 @@ library(glmnet)
 library(dplyr)
 library(Matrix)
 library(svyVarSel)  
+library(pROC)
 # Recode the outcome variable ("No" = 0, "Yes" = 1)
-# Load required packages
-library(survey)
-library(svyVarSel)
+
 
 # Function to process each dataset
-process_dataset <- function(dataset, outcome_var, predictor_vars, alpha = 0.5, k = 10, R = 20) {
+process_dataset <- function(dataset, outcome_var, predictor_vars, alpha = 0.5, k = 5, R = 1) {
   # Recode the outcome variable ("No" = 0, "Yes" = 1)
   dataset[[outcome_var]] <- ifelse(dataset[[outcome_var]] == "No", 0, 1)
   
@@ -88,17 +87,22 @@ aggregate_feature_importance <- function(elastic_net_models) {
   
   # Extract feature importance from each model
   feature_importance_list <- lapply(flattened_models, function(model_info) {
-    model_info$feature_importance
+    as.data.frame(t(model_info$feature_importance))[-2,]
   })
   
   # Combine feature importance into a single data frame
-  combined_importance <- do.call(rbind, feature_importance_list)
+  combined_importance <- bind_rows(feature_importance_list)
   
   # Calculate mean importance for each feature
-  mean_importance <- colMeans(combined_importance[, "Importance", drop = FALSE], na.rm = TRUE)
+  mean_importance <- as.data.frame(t(combined_importance %>% 
+    mutate(across(where(is.character), as.numeric, na.rm = TRUE)) %>% 
+    summarise(across(where(is.numeric), mean, na.rm = TRUE))))
+  
+  mean_importance$Feature <- rownames(mean_importance)
+           
   
   # Identify top 25 features based on mean importance
-  top_features <- names(sort(mean_importance, decreasing = TRUE))[1:25]
+  top_features <- mean_importance$Feature[(order(abs(mean_importance$V1), decreasing = TRUE))[1:25]]
   
   return(top_features)
 }
@@ -109,7 +113,7 @@ top_features_2015 <- aggregate_feature_importance(elastic_net_models_2015)
 top_features_2017 <- aggregate_feature_importance(elastic_net_models_2017)
 
 # Function to evaluate model performance
-evaluate_model_performance <- function(train_data, test_data, outcome_var, predictor_vars, alpha = 0.5, k = 10, R = 20) {
+evaluate_model_performance <- function(train_data, test_data, outcome_var, predictor_vars, alpha = 0.5, k = 5, R = 1) {
   # Recode the outcome variable
   train_data[[outcome_var]] <- ifelse(train_data[[outcome_var]] == "No", 0, 1)
   test_data[[outcome_var]] <- ifelse(test_data[[outcome_var]] == "No", 0, 1)
@@ -140,7 +144,11 @@ evaluate_model_performance <- function(train_data, test_data, outcome_var, predi
   
   # Predict on test data
   x_test <- as.matrix(test_data[, predictor_vars])
-  predictions <- predict(elastic_net_model, newx = x_test, s = "lambda.min", type = "response")
+  coef <- c(elastic_net_model$model$min$a0, elastic_net_model$model$min$beta[,'s0']) 
+  coef <- matrix(coef, ncol = 1)
+  predictions <- cbind(1,x_test) %*% coef
+  
+  predictions <- as.numeric(predictions > 0)
   
   # Evaluate performance: Calculate AUC
   y_test <- test_data[[outcome_var]]
@@ -151,11 +159,24 @@ evaluate_model_performance <- function(train_data, test_data, outcome_var, predi
 }
 
 # Evaluate performance for each dataset
-auc_2013 <- evaluate_model_performance(dat_hyp_2013_std_train, dat_hyp_2013_std_test, outcome_var, predictor_vars)
-auc_2015 <- evaluate_model_performance(dat_hyp_2015_std_train, dat_hyp_2015_std_test, outcome_var, predictor_vars)
-auc_2017 <- evaluate_model_performance(dat_hyp_2017_std_train, dat_hyp_2017_std_test, outcome_var, predictor_vars)
+auc_2013 <- lapply(seq_along(dat_hyp_2013_std_train), function(i){
+  evaluate_model_performance(dat_hyp_2013_std_train[[i]], dat_hyp_2013_std_test[[i]], outcome_var, predictor_vars)}) 
 
+auc_2013 <- do.call(rbind,auc_2013) 
+auc_2013_mean <- c(mean(auc_2013), sd(auc_2013))
+
+auc_2015 <- lapply(seq_along(dat_hyp_2015_std_train), function(i){
+  evaluate_model_performance(dat_hyp_2015_std_train[[i]], dat_hyp_2015_std_test[[i]], outcome_var, predictor_vars)}) 
+
+auc_2015 <- do.call(rbind,auc_2015) 
+auc_2015_mean <- c(mean(auc_2015), sd(auc_2015))
+
+auc_2017 <- lapply(seq_along(dat_hyp_2017_std_train), function(i){
+  evaluate_model_performance(dat_hyp_2017_std_train[[i]], dat_hyp_2017_std_test[[i]], outcome_var, predictor_vars)}) 
+
+auc_2017 <- do.call(rbind,auc_2017) 
+auc_2017_mean <- c(mean(auc_2017), sd(auc_2017))
 # Print AUC values
-cat("AUC for 2013 data:", auc_2013, "\n")
-cat("AUC for 2015 data:", auc_2015, "\n")
-cat("AUC for 2017 data:", auc_2017, "\n")
+cat("AUC for 2013 data:", auc_2013_mean, "\n")
+cat("AUC for 2015 data:", auc_2015_mean, "\n")
+cat("AUC for 2017 data:", auc_2017_mean, "\n")
