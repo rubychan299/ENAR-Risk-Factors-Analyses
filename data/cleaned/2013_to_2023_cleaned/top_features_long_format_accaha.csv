@@ -1,0 +1,76 @@
+Feature,Year,Metric,Value
+bp_med_use.Yes,2013,MeanImportance,2.3127578093943986
+htn_resistant_jnc7.Yes,2013,MeanImportance,-2.1573997147142334
+bp_med_vasod.Yes,2013,MeanImportance,1.4582327126241472
+bp_med_n_class.Four or more,2013,MeanImportance,0.5745498114790084
+bp_med_aldo.Yes,2013,MeanImportance,0.5223370856517391
+htn_aware.Yes,2013,MeanImportance,0.5163754169647481
+bp_med_ace.Yes,2013,MeanImportance,0.4100780771984476
+bp_med_n_class.Three,2013,MeanImportance,0.383070610681016
+demo_race.Non-Hispanic Black,2013,MeanImportance,-0.36748552704198634
+bp_med_ccb_ndh.Yes,2013,MeanImportance,-0.33380035130764957
+cc_acr_gteq30.Yes,2013,MeanImportance,-0.3300218419330721
+bp_med_ccb_dh.Yes,2013,MeanImportance,0.32785443373207696
+bp_med_alpha.Yes,2013,MeanImportance,0.3161810059651445
+bp_med_n_class.None,2013,MeanImportance,-0.22166811865123254
+bp_med_n_pills.None,2013,MeanImportance,-0.22032589412915163
+bp_med_diur_thz.Yes,2013,MeanImportance,0.21526849897927317
+cc_cvd_any.Yes,2013,MeanImportance,0.20989645261767148
+cc_acr,2013,MeanImportance,-0.19548510350559462
+bp_med_beta.Yes,2013,MeanImportance,0.19172946937300744
+bp_med_n_pills.Four or more,2013,MeanImportance,0.17895301385993023
+bp_med_n_pills.Three,2013,MeanImportance,0.15247013972086582
+demo_race.Other,2013,MeanImportance,-0.15163479326760954
+demo_age_years,2013,MeanImportance,-0.14173978370968393
+cc_cvd_hf.Yes,2013,MeanImportance,0.13218435060321623
+demo_race.Non-Hispanic White,2013,MeanImportance,0.12477095190087534
+htn_resistant_jnc7.Yes,2015,MeanImportance,-2.054340929844552
+bp_med_use.Yes,2015,MeanImportance,1.7045310405514433
+bp_med_n_class.Four or more,2015,MeanImportance,0.8489758602714642
+htn_aware.Yes,2015,MeanImportance,0.5445915108928884
+bp_med_ace.Yes,2015,MeanImportance,0.5212451163384072
+bp_med_n_pills.Four or more,2015,MeanImportance,0.4299770578014948
+bp_med_n_class.Three,2015,MeanImportance,0.4020662364417939
+bp_med_aldo.Yes,2015,MeanImportance,0.37760641230304354
+cc_acr_gteq30.Yes,2015,MeanImportance,-0.3594336783396332
+bp_med_n_class.None,2015,MeanImportance,-0.33941026932853524
+bp_med_n_pills.None,2015,MeanImportance,-0.33835464582592895
+cc_cvd_hf.Yes,2015,MeanImportance,0.2739620998350035
+demo_age_cat.75+,2015,MeanImportance,-0.2712288396499378
+bp_med_diur_Ksparing.Yes,2015,MeanImportance,0.2684225723199675
+bp_med_diur_thz.Yes,2015,MeanImportance,0.21858109589673327
+demo_age_cat.45 to 64,2015,MeanImportance,0.2080552784556326
+cc_ckd.Yes,2015,MeanImportance,-0.16020864236856705
+cc_cvd_any.Yes,2015,MeanImportance,0.15838090236556807
+cc_smoke.Never,2015,MeanImportance,-0.1583744837919949
+LBXTC,2015,MeanImportance,-0.1578789383753789
+bp_med_alpha.Yes,2015,MeanImportance,0.156137305255548
+cc_egfr,2015,MeanImportance,-0.15346591650312577
+demo_gender.Men,2015,MeanImportance,-0.11299692315423578
+demo_gender.Women,2015,MeanImportance,0.11175439458632387
+bp_med_central.Yes,2015,MeanImportance,-0.10053649123985697
+htn_resistant_jnc7.Yes,2017,MeanImportance,-2.651302237484655
+bp_med_use.Yes,2017,MeanImportance,1.8585772576565915
+bp_med_n_class.Four or more,2017,MeanImportance,1.342705980730438
+bp_med_central.Yes,2017,MeanImportance,-0.8179873562102176
+htn_aware.Yes,2017,MeanImportance,0.7941469923389678
+bp_med_n_class.Three,2017,MeanImportance,0.6745852796506628
+bp_med_ace.Yes,2017,MeanImportance,0.6302757069691971
+bp_med_aldo.Yes,2017,MeanImportance,0.5593730417882272
+bp_med_n_class.None,2017,MeanImportance,-0.5003072382831536
+bp_med_n_pills.None,2017,MeanImportance,-0.4987586277374433
+bp_med_diur_loop.Yes,2017,MeanImportance,0.43216185832137194
+bp_med_diur_thz.Yes,2017,MeanImportance,0.3747220212887161
+bp_med_alpha.Yes,2017,MeanImportance,0.3082523866432745
+cc_acr_gteq30.Yes,2017,MeanImportance,-0.28901613913668056
+demo_age_cat.75+,2017,MeanImportance,-0.2871001036052515
+bp_med_n_pills.One,2017,MeanImportance,0.2726393082220573
+bp_med_diur_Ksparing.Yes,2017,MeanImportance,0.24998300142265847
+cc_cvd_mi.Yes,2017,MeanImportance,-0.24291638115180986
+bp_med_beta.Yes,2017,MeanImportance,0.20200316273376362
+LBXRBCSI,2017,MeanImportance,-0.16618765674205305
+OHQ030,2017,MeanImportance,-0.16572877277940692
+bp_med_n_pills.Four or more,2017,MeanImportance,0.16298084442234534
+bp_med_n_pills.Two,2017,MeanImportance,-0.156430946796671
+demo_race.Non-Hispanic White,2017,MeanImportance,0.15626296959177682
+cc_egfr,2017,MeanImportance,-0.14441043864025246
