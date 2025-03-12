@@ -337,7 +337,7 @@ run_model_and_extract_features <- function(data, outcome_var, vars, mode = c("gb
       strata = ~svy_strata, 
       weights = ~svy_weight_mec, 
       clusters = ~svy_psu, 
-      pval = 0.05
+      pval = 0.1
     )
   } else if (mode == "rf") {
     model <- rpms_forest(
@@ -379,141 +379,314 @@ majority_vote_features <- function(feature_lists, vars, n = 25) {
 
 # CODE FOR RUNNING for a given year (e.g. dat_hyp_2013_samp)
 # need to remove special characters because rpms is stupid 
-clean_variable_names <- function(df) {
-  names(df) <- gsub("[^A-Za-z0-9_]", "_", names(df))  # Replace all non-alphanumeric characters with "_"
-  names(df) <- gsub("_+", "_", names(df))  # Remove duplicate underscores
-  names(df) <- gsub("^_|_$", "", names(df))  # Remove leading/trailing underscores
-  return(df)
+clean_variable_names <- function(data) {
+  clean_names <- function(names_vec) {
+    names_vec <- gsub("[^A-Za-z0-9_]", "_", names_vec)  # Replace all non-alphanumeric characters with "_"
+    names_vec <- gsub("_+", "_", names_vec)  # Remove duplicate underscores
+    names_vec <- gsub("^_|_$", "", names_vec)  # Remove leading/trailing underscores
+    return(names_vec)
+  }
+
+  if (is.data.frame(data)) {
+    # If input is a dataframe, clean its column names
+    names(data) <- clean_names(names(data))
+    return(data)
+  } else if (is.list(data)) {
+    # If input is a list of strings, clean each element
+    return(lapply(data, clean_names))
+  } else if (is.character(data)) {
+    # If input is a vector of column names, clean directly
+    return(clean_names(data))
+  } else {
+    stop("Input must be a dataframe, a list of character vectors, or a character vector.")
+  }
+}
+data_list <- list(
+  #"2013" = dat_hyp_2013_samp,
+  #"2015" = dat_hyp_2015_samp,
+  "2017" = dat_hyp_2017_samp[1:2]
+)
+
+# Loop through each dataset year
+for (year in names(data_list)) {
+  cat("\nProcessing Year:", year, "\n")
+  
+  # Select dataset
+  dataset <- data_list[[year]]
+  
+  # Define exclusion list (already modified based on your previous request)
+  columns_to_exclude <- clean_variable_names(columns_to_exclude <- c(
+  'bp_control_jnc7', 'bp_control_accaha', 'SEQN', 'bp_med_recommended_accaha.Yes', 'bp_med_recommended_jnc7.Yes', 
+  'htn_resistant_accaha.Yes', 'svy_strata', 'svy_weight_mec', 'svy_psu', 
+  'htn_resistant_jnc7.Yes', 'htn_aware.Yes', 'bp_med_use.Yes',
+  'bp_med_n_class.None', 'bp_med_n_class.One', 'bp_med_n_class.Two',
+  'bp_med_n_class.Three', 'bp_med_n_class.Four or more', 'demo_age_cat.18 to 44', 'demo_age_cat.45 to 64',
+  'demo_age_cat.65 to 74', 'demo_age_cat.75+', 'bp_med_alpha.Yes', 'bp_med_n_pills.None', 'bp_med_n_pills.One', 'bp_med_n_pills.Two',
+  'bp_med_n_pills.Three', 'bp_med_n_pills.Four or more', 
+  'bp_med_diur_Ksparing.Yes', 'bp_med_vasod.Yes', 'bp_med_ccb_ndh.Yes', 'bp_med_ccb_dh.Yes', 'cc_cvd_hf.Yes', 'bp_med_aldo.Yes', 'cc_egfr_lt60.Yes',
+  'bp_med_ace.Yes', 'bp_med_angioten.Yes', 'bp_med_beta.Yes', 'bp_med_ccb.Yes',
+  'bp_med_central.Yes', 'bp_med_renin_inhibitors.Yes', 'bp_med_diur_loop.Yes',
+  'bp_med_diur_thz.Yes', 'WHD010', 'WHD050', 'WHD020'
+))
+  print(columns_to_exclude)
+  
+  # Clean variable names
+  dataset <- lapply(dataset, function(boot_sample) {
+    lapply(boot_sample, clean_variable_names)
+  })
+
+  # Define feature selection set
+  all_vars <- colnames(dataset[[1]][[1]])
+  vars_for_jnc7 <- setdiff(all_vars, columns_to_exclude)
+  print(vars_for_jnc7)
+  vars_for_accaha <- setdiff(all_vars, columns_to_exclude)
+
+  # Set parameters
+  outcome_var <- "bp_control_jnc7"  # Change to "bp_control_accaha" if needed
+  vars <- vars_for_jnc7  # Change to vars_for_accaha if needed
+  mode <- "gb"  # Change to "rf" for random forest
+
+  # Run feature selection on all 5 imputed datasets for each bootstrap sample
+  bootstrap_selected_features <- lapply(dataset, function(boot_sample) {
+    imputed_feature_sets <- lapply(boot_sample, function(data) {
+      tryCatch({
+        # Convert outcome variable to numeric
+        data[[outcome_var]] <- as.numeric(data[[outcome_var]])
+        
+        # Run feature selection
+        run_model_and_extract_features(data, outcome_var, vars, mode=mode)
+        
+      }, error = function(e) {
+        cat("Skipping dataset due to error:", conditionMessage(e), "\n")
+        return(NULL)  # Return NULL if error occurs
+      })
+    })
+    
+    # Remove failed runs (NULL values)
+    imputed_feature_sets <- Filter(Negate(is.null), imputed_feature_sets)
+    
+    # Get the top 25 features from successful datasets
+    if (length(imputed_feature_sets) > 0) {
+      majority_vote_features(imputed_feature_sets, vars, n = 25)
+    } else {
+      cat("Skipping bootstrap sample due to all failures.\n")
+      return(NULL)  # Skip this bootstrap if all 5 datasets fail
+    }
+  })
+
+  # Remove failed bootstrap samples
+  bootstrap_selected_features <- Filter(Negate(is.null), bootstrap_selected_features)
+
+  # Perform majority voting over bootstrapped datasets (returning top 25)
+  print(bootstrap_selected_features)
+  final_selected_features <- majority_vote_features(bootstrap_selected_features, vars, n = 25)
+
+  # Save the final selected features to CSV
+  output_filename <- paste0("final_features_for_", mode, "_", year, ".csv")
+  write.csv(final_selected_features, output_filename, row.names = FALSE)
+
+  # Print the final selected features
+  cat("\nFinal selected features for", year, "saved as", output_filename, "\n")
+  print(final_selected_features)
 }
 
-# PARAMETERS THAT NEED TO BE CHANGED:
-# 1. data (e.g. dat_hyp_2013_samp)
-# 2. outcome_var (bp_control_jnc7 or bp_control accaha)
-# 3. vars (either vars_for_jnc7 or vars_for_accaha)
-# 4. mode (e.g. rf for random forest,  gb for gradient boost)
-dat_hyp_2015_samp <- lapply(dat_hyp_2015_samp, function(boot_sample) {
-  lapply(boot_sample, clean_variable_names)
-})
-all_vars <- colnames(dat_hyp_2015_samp[[1]][[1]])
-vars_for_jnc7 <- setdiff(all_vars, c('bp_control_jnc7', 'bp_control_accaha', 'SEQN', 'bp_med_recommended_accaha', 'htn_resistant_accaha.Yes'))
-vars_for_accaha <- setdiff(all_vars, c('bp_control_jnc7', 'bp_control_accaha', 'SEQN', 'bp_med_recommended_jnc7', 'htn_resistant_jnc7.Yes'))
 
+# Now evaluate 
+data_list <- list(
+  "2013" = list(train = dat_hyp_2013_std_train, test = dat_hyp_2013_std_test),
+  "2015" = list(train = dat_hyp_2015_std_train, test = dat_hyp_2015_std_test),
+  "2017" = list(train = dat_hyp_2017_std_train, test = dat_hyp_2017_std_test)
+)
+
+# Define outcome variable
 outcome_var <- "bp_control_jnc7"
-vars <- vars_for_jnc7 
-mode <- 'gb'
 
-# Run feature selection on all 5 imputed datasets for each bootstrap sample
-bootstrap_selected_features <- lapply(dat_hyp_2015_samp, function(boot_sample) {
-  imputed_feature_sets <- lapply(boot_sample, function(data) {
-    tryCatch({
-      # Convert outcome variable to numeric
-      data[[outcome_var]] <- as.numeric(data[[outcome_var]])
-      
-      # Run feature selection
-      run_model_and_extract_features(data, outcome_var, vars, mode=mode)
-      
-    }, error = function(e) {
-      cat("Skipping dataset due to error:", conditionMessage(e), "\n")
-      return(NULL)  # Return NULL if error occurs
-    })
-  })
+# Loop through each dataset year
+for (year in names(data_list)) {
+  cat("\nProcessing Year:", year, "\n")
   
-  # Remove failed runs (NULL values)
-  imputed_feature_sets <- Filter(Negate(is.null), imputed_feature_sets)
-  
-  # Get the top 25 features from successful datasets
-  if (length(imputed_feature_sets) > 0) {
-    majority_vote_features(imputed_feature_sets, vars, n = 25)
-  } else {
-    cat("Skipping bootstrap sample due to all failures.\n")
-    return(NULL)  # Skip this bootstrap if all 5 datasets fail
-  }
-})
-
-# Remove failed bootstrap samples
-bootstrap_selected_features <- Filter(Negate(is.null), bootstrap_selected_features)
-
-# Perform majority voting over 50 bootstrapped datasets (returning top 25)
-final_selected_features <- majority_vote_features(bootstrap_selected_features, vars, n = 25)
-
-# Save the final selected features to CSV
-write.csv(final_selected_features, paste0("final_features_for_", mode, "2015.csv"), row.names = FALSE)
-
-# Print the final selected features
-print(final_selected_features)
-```
-
-# Evaluate Xgboost
-```{r}
-features_path <- "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/selected features/jnc7/final_features_for_gb2013.csv"
-# Read the selected features as a vector
-selected_features <- read.csv(features_path, stringsAsFactors = FALSE)$Feature
-
-library(pROC)  # For AUC calculation
-
-# Initialize list to store AUC values
-auc_values <- vector("numeric", length(dat_hyp_2013_std_train))
-# Apply variable name cleaning to all test datasets
-dat_hyp_2013_std_train <- lapply(dat_hyp_2013_std_train, function(train_data) {
-  clean_variable_names(train_data)
-})
-dat_hyp_2013_std_test <- lapply(dat_hyp_2013_std_test, function(test_data) {
-  clean_variable_names(test_data)
-})
-
-# Loop over 5 imputed datasets in the training set
-xgb_models <- lapply(dat_hyp_2013_std_train, function(train_data) {
-  
-  # Convert selected predictors to numeric (excluding survey variables)
-  train_data[[outcome_var]] <- as.numeric(train_data[[outcome_var]])
-
-  # Define formula dynamically
-  formula_obj <- as.formula(paste("bp_control_jnc7 ~", paste(selected_features, collapse = " + ")))
-
-  # Train model
-  xgb <- rpms_boost(
-    formula_obj, 
-    data = train_data, 
-    strata = ~svy_strata, 
-    weights = ~svy_weight_mec, 
-    clusters = ~svy_psu, 
-    pval = 0.05
+  # Load the correct feature set
+  features_path <- paste0(
+    "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/R/final_features_for_gb_", 
+    year, ".csv"
   )
   
-  return(xgb)
-})
+  if (!file.exists(features_path)) {
+    cat("Skipping", year, "- Feature file not found:", features_path, "\n")
+    next
+  }
+  
+  selected_features <- read.csv(features_path, stringsAsFactors = FALSE)$Feature
 
-# Function to convert predictions to binary (0/1)
-binarize_predictions <- function(preds) {
-  ifelse(preds >= 1.5, 2, 1)
-}
+  # Retrieve training and test data
+  dat_train <- data_list[[year]]$train
+  dat_test <- data_list[[year]]$test
 
-# Initialize list to store AUC values
-auc_values <- vector("numeric", length(dat_hyp_2013_std_test))
+  # Apply variable name cleaning
+  dat_train <- lapply(dat_train, clean_variable_names)
+  dat_test <- lapply(dat_test, clean_variable_names)
 
-# Loop over 5 imputed test datasets
-for (i in seq_along(dat_hyp_2013_std_test)) {
-  test_data <- dat_hyp_2013_std_test[[i]]
+  # Train models on 5 imputed datasets
+  xgb_models <- lapply(dat_train, function(train_data) {
+    tryCatch({
+      # Convert outcome variable to numeric
+      train_data[[outcome_var]] <- as.numeric(train_data[[outcome_var]])
 
-  # Convert selected predictors to numeric
-  test_data[[outcome_var]] <- as.numeric(test_data[[outcome_var]])
+      # Define formula dynamically
+      formula_obj <- as.formula(paste(outcome_var, "~", paste(selected_features, collapse = " + ")))
 
-  # Get predictions
-  preds <- predict(xgb_models[[i]], newdata = test_data)
+      # Train XGBoost model with survey weights
+      xgb <- rpms_boost(
+        formula_obj, 
+        data = train_data, 
+        strata = ~svy_strata, 
+        weights = ~svy_weight_mec, 
+        clusters = ~svy_psu, 
+        pval = 0.05
+      )
+      return(xgb)
+    }, error = function(e) {
+      cat("Skipping dataset due to error:", conditionMessage(e), "\n")
+      return(NULL)  # Skip failed datasets
+    })
+  })
+
+  # Remove failed runs (NULL values)
+  xgb_models <- Filter(Negate(is.null), xgb_models)
+
+  # Function to convert predictions to binary (0/1)
+  binarize_predictions <- function(preds) {
+    ifelse(preds >= 1.5, 2, 1)
+  }
+
+  # Initialize list to store AUC values
+  auc_values <- vector("numeric", length(dat_test))
+
+  # Loop over 5 imputed test datasets
+  for (i in seq_along(dat_test)) {
+    if (is.null(xgb_models[[i]])) {
+      cat("Skipping test set", i, "due to missing trained model.\n")
+      next
+    }
+    
+    test_data <- dat_test[[i]]
+
+    # Convert outcome variable to numeric
+    test_data[[outcome_var]] <- as.numeric(test_data[[outcome_var]])
+
+    # Get predictions
+    preds <- predict(xgb_models[[i]], newdata = test_data)
 
     # Convert to binary classification
-  preds_binary <- binarize_predictions(preds)
+    preds_binary <- binarize_predictions(preds)
 
-  # Compute AUC
-  auc_values[i] <- auc(roc(test_data$bp_control_jnc7, preds_binary))
+    # Compute AUC
+    auc_values[i] <- auc(roc(test_data$bp_control_accaha, preds_binary))
+  }
+
+  # Remove missing AUCs
+  auc_values <- auc_values[!is.na(auc_values)]
+
+  # Compute mean AUC over the test datasets
+  if (length(auc_values) > 0) {
+    mean_auc <- mean(auc_values)
+    sd_auc <- sd(auc_values)
+    cat("\nMean AUC/ROC for", year, ":", round(mean_auc, 4), "\n")
+    cat("SD AUC/ROC for", year, ":", round(sd_auc, 4), "\n")
+  } else {
+    cat("\nSkipping AUC calculation for", year, "due to missing predictions.\n")
+  }
 }
-
-# Compute mean AUC over the 5 test datasets
-mean_auc <- mean(auc_values)
-print(paste("Mean AUC/ROC:", round(mean_auc, 4)))
-
 ```
+# 2021-2023 data creation
+```{r}
+rm(list = ls())
 
+
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData')
+
+data_dir <- "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data"
+
+files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "CBC_L.xpt", "HDL_L.xpt", "PBCD_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt")
+xpt_files <- list.files(path = data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+xpt_files <- xpt_files[basename(xpt_files) %in% files_needed]
+
+datasets <- lapply(xpt_files, function(file) {
+  df <- read_xpt(file) %>% as.data.frame()
+  return(df)
+})
+
+data <- Reduce(function(x, y) inner_join(x, y, by = "SEQN"), datasets)
+
+data <- data %>%
+  mutate(
+    svy_psu = SDMVPSU,
+    svy_strata = SDMVSTRA,
+    svy_weight_mec = WTMEC2YR,
+    
+    demo_race = case_when(
+      RIDRETH3 == 3 ~ "Non-Hispanic White",
+      RIDRETH3 == 4 ~ "Non-Hispanic Black",
+      RIDRETH3 == 6 ~ "Non-Hispanic Asian",
+      RIDRETH3 %in% c(1, 2) ~ "Hispanic",
+      RIDRETH3 == 7 ~ "Other",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic Asian", "Hispanic", "Other")),
+    
+    demo_gender = factor(RIAGENDR, labels = c("Men", "Women")),
+    demo_age_years = as.numeric(RIDAGEYR),
+    
+    weight_change = as.numeric(WHD020) - as.numeric(WHD050),
+    
+    BPXSY = rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE) + 1.5, 
+    BPXDI = rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE) - 1.3, 
+    
+    bp_control_jnc7 = factor(ifelse(BPXSY < 140 & BPXDI < 90, "Yes", "No"), levels = c("No", "Yes")),
+    
+    cc_cvd_any = case_when(
+      if_any(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 1) ~ "Yes",
+      if_all(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 2) ~ "No",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("No", "Yes")),
+    
+    cc_diabetes = case_when(
+      DIQ070 == 1 | DIQ010 == 1 ~ "Yes",
+      DIQ070 == 2 | DIQ010 %in% c(2,3) ~ "No",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("No", "Yes")),
+    
+    cc_smoke = case_when(
+      SMQ040 %in% c(1, 2) ~ "Current",  # If SMQ040 is 1 or 2 → "Current"
+      SMQ040 %in% c(2, 3) & SMQ020 == 1 ~ "Former",  # If SMQ040 is 2 or 3 AND SMQ020 == 1 → "Former"
+      SMQ040 == 3 & SMQ020 == 2 ~ "Never",  # If SMQ040 is 3 AND SMQ020 == 2 → "Never"
+      SMQ020 == 2 ~ "Never", # SMQ040 has a lot missing, so 
+      TRUE ~ NA_character_  # Assign NA if none of the conditions match
+    ) %>% factor(levels = c("Never", "Former", "Current"))
+  ) %>%
+  select(
+    SEQN, BMXBMI, INDFMMPI, LBDBANO, LBDHDD, LBDMONO, LBXBPB, LBXBSE, LBXRBCSI, LBXWBCSI, 
+    svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
+    weight_change, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke
+  )
+
+# Does it match with str(dat_hyp_2013_final[[1]])?
+common_vars <- intersect(names(data), names(dat_hyp_2013_final[[1]]))
+mismatches <- sapply(common_vars, function(var) {
+  class(data[[var]])[1] != class(dat_hyp_2013_final[[1]][[var]])[1]
+})
+mismatched_vars <- common_vars[mismatches]
+print(mismatched_vars)
+
+# Check missingness
+missing_summary <- data %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Count") %>%
+  arrange(desc(Missing_Count))
+
+print(missing_summary)
+
+save(data, file = "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
+```
 
 
 
