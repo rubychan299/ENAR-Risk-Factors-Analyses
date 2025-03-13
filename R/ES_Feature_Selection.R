@@ -2,7 +2,7 @@ rm(list = ls())
 cat("\014")
 
 # Load the required data
-load("/Users/cdp4029/Downloads/dat_train_test_bootstrapped_2013_2020 (1).RData")
+# load("/Users/cdp4029/Downloads/dat_train_test_bootstrapped_2013_2020 (1).RData")
 
 # Install required packages if not already installed
 # install.packages("survey")
@@ -58,13 +58,6 @@ process_dataset <- function(dataset, outcome_var, predictor_vars, alpha = 0.5, k
   return(list(model = elastic_net_model, feature_importance = feature_importance))
 }
 
-# Define the outcome variable and predictor variables
-outcome_var <- "bp_control_jnc7"
-all_vars <- colnames(dat_hyp_2013_samp[[1]][[1]])
-columns_to_exclude <- c('bp_control_jnc7', 'bp_control_accaha', 'SEQN', 
-                        'bp_med_recommended_accaha', 'htn_resistant_accaha.Yes', 
-                        "svy_strata", "svy_weight_mec", "svy_psu")
-predictor_vars <- setdiff(all_vars, columns_to_exclude)
 
 # Function to apply process_dataset to nested lists
 process_nested_list <- function(nested_list, outcome_var, predictor_vars) {
@@ -76,8 +69,21 @@ process_nested_list <- function(nested_list, outcome_var, predictor_vars) {
 }
 
 # Process datasets for each year
+
+# Define the outcome variable and predictor variables
+outcome_var <- "bp_control_jnc7"
+columns_to_exclude <- c('bp_control_jnc7', 'SEQN', 
+                        "svy_strata", "svy_weight_mec", "svy_psu")
+all_vars <- colnames(dat_hyp_2013_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 elastic_net_models_2013 <- process_nested_list(dat_hyp_2013_samp, outcome_var, predictor_vars)
+
+all_vars <- colnames(dat_hyp_2015_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 elastic_net_models_2015 <- process_nested_list(dat_hyp_2015_samp, outcome_var, predictor_vars)
+
+all_vars <- colnames(dat_hyp_2017_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 elastic_net_models_2017 <- process_nested_list(dat_hyp_2017_samp, outcome_var, predictor_vars)
 
 # Function to extract and combine feature importance
@@ -159,18 +165,24 @@ evaluate_model_performance <- function(train_data, test_data, outcome_var, predi
 }
 
 # Evaluate performance for each dataset
+all_vars <- colnames(dat_hyp_2013_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 auc_2013 <- lapply(seq_along(dat_hyp_2013_std_train), function(i){
   evaluate_model_performance(dat_hyp_2013_std_train[[i]], dat_hyp_2013_std_test[[i]], outcome_var, predictor_vars)}) 
 
 auc_2013 <- do.call(rbind,auc_2013) 
 auc_2013_mean <- c(mean(auc_2013), sd(auc_2013))
 
+all_vars <- colnames(dat_hyp_2015_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 auc_2015 <- lapply(seq_along(dat_hyp_2015_std_train), function(i){
   evaluate_model_performance(dat_hyp_2015_std_train[[i]], dat_hyp_2015_std_test[[i]], outcome_var, predictor_vars)}) 
 
 auc_2015 <- do.call(rbind,auc_2015) 
 auc_2015_mean <- c(mean(auc_2015), sd(auc_2015))
 
+all_vars <- colnames(dat_hyp_2017_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
 auc_2017 <- lapply(seq_along(dat_hyp_2017_std_train), function(i){
   evaluate_model_performance(dat_hyp_2017_std_train[[i]], dat_hyp_2017_std_test[[i]], outcome_var, predictor_vars)}) 
 
@@ -180,3 +192,6 @@ auc_2017_mean <- c(mean(auc_2017), sd(auc_2017))
 cat("AUC for 2013 data:", auc_2013_mean, "\n")
 cat("AUC for 2015 data:", auc_2015_mean, "\n")
 cat("AUC for 2017 data:", auc_2017_mean, "\n")
+
+save(auc_2013, auc_2015, auc_2017,auc_2013_mean, auc_2015_mean, auc_2017_mean, file = "data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData")
+save(top_features_2013, top_features_2015, top_features_2017, file = "data/cleaned/2013_to_2023_cleaned/top_features_ES.RData")
