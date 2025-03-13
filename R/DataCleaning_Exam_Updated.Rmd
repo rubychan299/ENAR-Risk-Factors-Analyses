@@ -602,12 +602,43 @@ for (year in names(data_list)) {
 ```{r}
 rm(list = ls())
 
-
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData')
+load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/top_features_ES.RData')
 load('/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData')
 
-data_dir <- "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data"
+clean_names <- function(features) {
+  sub("\\..*", "", features)
+}
 
-files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "CBC_L.xpt", "HDL_L.xpt", "PBCD_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt")
+# Apply the cleaning function to each feature list
+cleaned_2013 <- clean_names(top_features_2013)
+cleaned_2015 <- clean_names(top_features_2015)
+cleaned_2017 <- clean_names(top_features_2017)
+
+# Find the intersection of the cleaned variable names
+common_features <- intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017)
+union_features <- union(union(cleaned_2013, cleaned_2015), cleaned_2017)
+
+data_dir <- "/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/2021_to_2023_data"
+xpt_files <- list.files(data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+matching_files <- c()
+for (file in xpt_files) {
+  # Read the .xpt file
+  df <- tryCatch(read_xpt(file), error = function(e) NULL)
+  
+  # Skip files that could not be read
+  if (is.null(df)) next
+  
+  # Check if any variable in union_features exists in the dataset
+  matched_vars <- intersect(names(df), union_features)
+  
+  if (length(matched_vars) > 0) {
+    matching_files[[file]] <- matched_vars  # Store the matched variables
+  }
+}
+print(matching_files) # the ones i don't need to recode 
+
+files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "HDL_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt", "CBC_L.xpt", "PBCD_L.xpt", "TCHOL_L.xpt", "HIQ_L.xpt", "KIQ_U_L.xpt", "OHQ_L.xpt") 
 xpt_files <- list.files(path = data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
 xpt_files <- xpt_files[basename(xpt_files) %in% files_needed]
 
@@ -664,18 +695,10 @@ data <- data %>%
     ) %>% factor(levels = c("Never", "Former", "Current"))
   ) %>%
   select(
-    SEQN, BMXBMI, INDFMMPI, LBDBANO, LBDHDD, LBDMONO, LBXBPB, LBXBSE, LBXRBCSI, LBXWBCSI, 
+    SEQN, BMXBMI, LBXRBCSI, LBXBPB, LBXTHG, LBXTC, HIQ011, KIQ022, OHQ845, LBDMONO,
     svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
     weight_change, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke
   )
-
-# Does it match with str(dat_hyp_2013_final[[1]])?
-common_vars <- intersect(names(data), names(dat_hyp_2013_final[[1]]))
-mismatches <- sapply(common_vars, function(var) {
-  class(data[[var]])[1] != class(dat_hyp_2013_final[[1]][[var]])[1]
-})
-mismatched_vars <- common_vars[mismatches]
-print(mismatched_vars)
 
 # Check missingness
 missing_summary <- data %>%
