@@ -851,5 +851,169 @@ save(dat_hyp_2013_std_train, dat_hyp_2013_std_test, dat_hyp_2015_std_train,
      dat_hyp_2015_samp, dat_hyp_2017_samp,
      file = "data/cleaned/dat_train_test_bootstrapped_2013_2020.RData")
 
+# clean 2021####
+
+rm(list = ls())
+
+load('data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData')
+load('data/cleaned/2013_to_2023_cleaned/top_features_ES.RData')
+load('data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData')
+
+clean_names <- function(features) {
+  sub("\\..*", "", features)
+}
+
+# Apply the cleaning function to each feature list
+cleaned_2013 <- clean_names(top_features_2013)
+cleaned_2015 <- clean_names(top_features_2015)
+cleaned_2017 <- clean_names(top_features_2017)
+
+# Find the intersection of the cleaned variable names
+common_features <- intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017)
+union_features <- union(union(cleaned_2013, cleaned_2015), cleaned_2017)
+
+data_dir <- "data/2021_to_2023_data"
+xpt_files <- list.files(data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+matching_files <- c()
+for (file in xpt_files) {
+  # Read the .xpt file
+  df <- tryCatch(read_xpt(file), error = function(e) NULL)
+  
+  # Skip files that could not be read
+  if (is.null(df)) next
+  
+  # Check if any variable in union_features exists in the dataset
+  matched_vars <- intersect(names(df), union_features)
+  
+  if (length(matched_vars) > 0) {
+    matching_files[[file]] <- matched_vars  # Store the matched variables
+  }
+}
+print(matching_files) # the ones i don't need to recode 
+
+files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "HDL_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt", "CBC_L.xpt", "PBCD_L.xpt", "TCHOL_L.xpt", "HIQ_L.xpt", "KIQ_U_L.xpt", "OHQ_L.xpt") 
+xpt_files <- list.files(path = data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+xpt_files <- xpt_files[basename(xpt_files) %in% files_needed]
+
+datasets <- lapply(xpt_files, function(file) {
+  df <- read_xpt(file) %>% as.data.frame()
+  return(df)
+})
+
+data <- Reduce(function(x, y) inner_join(x, y, by = "SEQN"), datasets)
+
+data <- data %>%
+  mutate(
+    svy_psu = SDMVPSU,
+    svy_strata = SDMVSTRA,
+    svy_weight_mec = WTMEC2YR,
+    
+    demo_race = case_when(
+      RIDRETH3 == 3 ~ "Non-Hispanic White",
+      RIDRETH3 == 4 ~ "Non-Hispanic Black",
+      RIDRETH3 == 6 ~ "Non-Hispanic Asian",
+      RIDRETH3 %in% c(1, 2) ~ "Hispanic",
+      RIDRETH3 == 7 ~ "Other",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic Asian", "Hispanic", "Other")),
+    
+    demo_gender = factor(RIAGENDR, labels = c("Men", "Women")),
+    demo_age_years = as.numeric(RIDAGEYR),
+    
+    across(starts_with("WHD"), ~ ifelse(
+      .x %in% c(7777, 9999),NA, .x)),
+    
+    weight_change = as.numeric(WHD020) - as.numeric(WHD050),
+    
+    BPXSY = rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE) + 1.5, 
+    BPXDI = rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE) - 1.3, 
+    
+    bp_control_jnc7 = factor(ifelse(BPXSY < 140 & BPXDI < 90, "Yes", "No"), levels = c("No", "Yes")),
+    
+    cc_cvd_any = case_when(
+      if_any(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 1) ~ "Yes",
+      if_all(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 2) ~ "No",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("No", "Yes")),
+    
+    cc_diabetes = case_when(
+      DIQ070 == 1 | DIQ010 == 1 ~ "Yes",
+      DIQ070 == 2 | DIQ010 %in% c(2,3) ~ "No",
+      TRUE ~ NA_character_
+    ) %>% factor(levels = c("No", "Yes")),
+    
+    cc_smoke = case_when(
+      SMQ040 %in% c(1, 2) ~ "Current",  # If SMQ040 is 1 or 2 → "Current"
+      SMQ040 %in% c(2, 3) & SMQ020 == 1 ~ "Former",  # If SMQ040 is 2 or 3 AND SMQ020 == 1 → "Former"
+      SMQ040 == 3 & SMQ020 == 2 ~ "Never",  # If SMQ040 is 3 AND SMQ020 == 2 → "Never"
+      SMQ020 == 2 ~ "Never", # SMQ040 has a lot missing, so 
+      TRUE ~ NA_character_  # Assign NA if none of the conditions match
+    ) %>% factor(levels = c("Never", "Former", "Current"))
+  ) %>%
+  select(
+    SEQN, BMXBMI, LBXRBCSI, LBXBPB, LBXTHG, LBXTC, HIQ011, KIQ022, OHQ845, LBDMONO,
+    svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
+    weight_change, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke
+  )
+
+# Check missingness
+missing_summary <- data %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Count") %>%
+  arrange(desc(Missing_Count))
+
+print(missing_summary)
+
+save(data, file = "data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
+
+load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
+
+data_2021 <- data
+
+data_2021 <- data_2021 %>% 
+  mutate(HIQ011 = case_when(
+    HIQ011 == 1 ~ "Yes",
+    HIQ011 == 2 ~ "No",
+    TRUE ~ NA_character_),
+    KIQ022 = case_when(
+      KIQ022 == 1 ~ "Yes",
+      KIQ022 == 2 ~ "No",
+      TRUE ~ NA_character_),
+    OHQ845 = case_when(
+      OHQ845 %in% c(1:3) ~ "Good and Above",
+      OHQ845 %in% c(4:5) ~ "Fair/Poor",
+      TRUE ~ NA_character_))
+
+miceObj_2021 <- mice::mice(data_2021, method = "cart")
+dat_hyp_mice_2021 <- mice::complete(miceObj_2021, "all")
+
+View(dat_hyp_mice_2021[[1]] %>%
+       summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+       pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage") %>% 
+       filter(Missing_Percentage > 0))
+
+dat_hyp_mice_2021 <- lapply(dat_hyp_mice_2021, function(df){
+  df <- df  %>% 
+    na.omit()
+})
 
 
+
+categorical_vars_2021 <- dat_hyp_mice_2021[[1]] %>% select(where(is.character), where(is.factor)) %>% colnames()
+
+dat_hyp_2021_cat <- lapply(dat_hyp_mice_2021, function(x){
+  x <- x %>% 
+    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata) %>% 
+    mutate(across(where(is.character), as.factor))
+  x <- x[colnames(x) %in% categorical_vars_2021]
+})
+
+dat_hyp_2021_continuous <- lapply(dat_hyp_mice_2021, function(x){
+  x <- x %>% 
+    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata)  
+  x <- x[!colnames(x) %in% categorical_vars_2021]
+  x <- x %>% mutate(across(where(is.double), as.numeric))})
+
+dat_hyp_2021_fci <- Map(cbind, dat_hyp_2021_cat, dat_hyp_2021_continuous)
+
+save(dat_hyp_2021_fci, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
