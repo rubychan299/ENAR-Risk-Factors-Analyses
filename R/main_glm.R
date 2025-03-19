@@ -13,7 +13,40 @@ library(jtools)
 data_list_years <- list(
   "2013" = dat_hyp_2013_final,
   "2015" = dat_hyp_2015_final,
-  "2017" = dat_hyp_2017_final
+  "2017" = dat_hyp_2017_final,
+  "2021" = dat_hyp_2021_final
+)
+
+name_map <- c(
+  "bp_control_jnc7" = "BP control",
+  "cc_diabetes" = "Diabetes",
+  "cc_cvd_any" = "Cardiovascular \nDisease",
+  "cc_cvd_stroke" = "Stroke",
+  "cc_cvd_chd" = "Coronary Heart \nDisease",
+  "cc_cvd_hf" = "Heart Failure",
+  "cc_bmi" = "Body Mass Index",
+  "cc_ckd" = "Chronic Kidney \nDisease",
+  "HIQ011" = "Covered by \nHealth Insurance",
+  "OHQ845" = "Oral Health",
+  "LBXRBCSI" = "Red Blood Cell \nIndex",
+  "LBDMONO" = "Monocyte Count",
+  "LBXSCH" = "Serum \nCholesterol",
+  "LBXSTR" = "Strontium",
+  "LBXSBU" = "Serum Urea \nNitrogen",
+  "URXUMS" = "Urinary \nAlbumin",
+  "URXUCR" = "Urinary Creatinine",
+  "LBXSUA" = "Serum Uric Acid",
+  "LBXTC" = "Total Cholesterol",
+  "LBXTHG" = "Blood Mercury",
+  "LBXBPB" = "Blood Lead",
+  "PFQ054" = "Physical Function: \nWalking",
+  "PFQ049" = "Physical Function: \nWorking",
+  "phq9_category" = "Depression",
+  "WHQ030" = "Weight Status",
+  "FSDAD" = "Food Security",
+  "weight_change" = "Weight Change",
+  "BMXBMI" = "Body Mass Index",
+  "KIQ022" = "Chronic Kidney \nDisease"
 )
 
 # Store results
@@ -66,6 +99,7 @@ for (year in names(data_list_years)) {
     term = pooled_summary$term,
     estimate = pooled_summary$estimate,
     std.error = pooled_summary$std.error,
+    or = exp(pooled_summary$estimate),
     statistic = pooled_summary$statistic,
     p.value = pooled_summary$p.value,
     conf.low = pooled_summary$estimate - 1.96 * pooled_summary$std.error,
@@ -77,6 +111,7 @@ for (year in names(data_list_years)) {
     term = pooled_summary_svy$term,
     estimate = pooled_summary_svy$estimate,
     std.error = pooled_summary_svy$std.error,
+    or = exp(pooled_summary_svy$estimate),
     statistic = pooled_summary_svy$statistic,
     p.value = pooled_summary_svy$p.value,
     conf.low = pooled_summary_svy$estimate - 1.96 * pooled_summary_svy$std.error,
@@ -91,25 +126,64 @@ for (year in names(data_list_years)) {
 
 # Print final results
 for (year in names(pooled_results_all_years)) {
-  file_name <- paste0("/Users/taehyo/Library/CloudStorage/Dropbox/NYU/Research/Research/Code/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/", year, "glm.csv")
+  file_name <- paste0("tables/", year, "glm.csv")
   write.csv(pooled_results_all_years[[year]], file = file_name, row.names = FALSE)
+  file_name_svy <- paste0("tables/", year, "svyglm.csv")
+  write.csv(pooled_results_all_years_svy[[year]], file = file_name_svy, row.names = FALSE)
   
   cat("\nSaved results for", year, "to", file_name, "\n")
 }
 
-# Check vif 
-X <- model.matrix(models[[1]])[, -1]  # Removes intercept column
-# Extract survey weights
-w <- dat_hyp_2017_final[[1]]$svy_weight_mec  
-# Compute VIF
-print(svyvif(models[[1]], X, w))
+# # Check vif 
+# X <- model.matrix(models[[1]])[, -1]  # Removes intercept column
+# # Extract survey weights
+# w <- dat_hyp_2017_final[[1]]$svy_weight_mec  
+# # Compute VIF
+# print(svyvif(models[[1]], X, w))
 
 
 
 
+# 
+# 
+# > print(direct_causes_2013)
+# $G
+# HIQ011         OHQ845         PFQ049         PFQ054    cc_diabetes 
+# TRUE          FALSE           TRUE          FALSE          FALSE 
+# cc_ckd     cc_cvd_chd  cc_cvd_stroke      cc_cvd_hf     cc_cvd_any 
+# TRUE          FALSE          FALSE          FALSE          FALSE 
+# LBXSBU_resid   LBXSCH_resid  LBDMONO_resid LBXRBCSI_resid 
+# FALSE           TRUE          FALSE          FALSE 
+# 
+# $zMin
+# [1] 3.8148788 1.6410033 3.4745797 0.5102130 1.4034016 7.2168300 1.7787406
+# [8] 1.7643376 1.7569715 1.7692688 0.8840009 5.3219704 0.9091544 1.8412733
+# 
+# 
+# 
+# > print(direct_causes_2017)
+# $G
+# HIQ011   cc_diabetes        cc_ckd  URXUMS_resid  LBXSBU_resid  LBXSCH_resid 
+# TRUE         FALSE         FALSE          TRUE          TRUE         FALSE 
+# LBXSTR_resid  LBXSUA_resid LBDMONO_resid  LBXBPB_resid  LBXTHG_resid   LBXTC_resid 
+# FALSE         FALSE         FALSE          TRUE         FALSE          TRUE 
+# URXUCR_resid 
+# TRUE 
+# 
+# $zMin
+# [1] 3.6112352 1.7006872 1.6178593 4.5630418 3.6637426 1.0307871 0.7402599 1.2242403 1.5049523
+# [10] 3.3431299 1.2238056 5.5379609 3.7299303
 
 
-
-
-
-
+# > print(direct_causes_2021)
+# $G
+# HIQ011              KIQ022              OHQ845          cc_cvd_any 
+# FALSE                TRUE                TRUE               FALSE 
+# cc_diabetes        BMXBMI_resid      LBXRBCSI_resid        LBXBPB_resid 
+# FALSE               FALSE                TRUE                TRUE 
+# LBXTHG_resid         LBXTC_resid       LBDMONO_resid weight_change_resid 
+# FALSE               FALSE               FALSE               FALSE 
+# 
+# $zMin
+# [1] 1.6666436 2.0237530 2.3635559 1.0938308 0.7821955 1.9538986 2.2908685 3.6601798 1.9355163
+# [10] 1.9019292 1.7891868 0.8027584

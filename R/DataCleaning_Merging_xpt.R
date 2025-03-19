@@ -1014,6 +1014,11 @@ dat_hyp_2021_continuous <- lapply(dat_hyp_mice_2021, function(x){
   x <- x[!colnames(x) %in% categorical_vars_2021]
   x <- x %>% mutate(across(where(is.double), as.numeric))})
 
+svy_vars_2021 <- lapply(dat_hyp_mice_2021, function(x){x <- x %>% 
+  select(SEQN,svy_weight_mec, svy_psu, svy_strata)})
+
 dat_hyp_2021_fci <- Map(cbind, dat_hyp_2021_cat, dat_hyp_2021_continuous)
 
-save(dat_hyp_2021_fci, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
+dat_hyp_2021_final <- Map(cbind, svy_vars_2021, dat_hyp_2021_fci)
+
+save(dat_hyp_2021_fci,dat_hyp_2021_final, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
