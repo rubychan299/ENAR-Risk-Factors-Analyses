@@ -544,8 +544,10 @@ pc_cpdag_2013 <- dag2cpdag(pc.fit.2013@graph)
 
 # Run jointIda with the regularized covariance matrix
 ida.total.2013 <- jointIda(x.pos = c(1:4, 6:19), y.pos = 5, cov_matrix_2013, pc_cpdag_2013, technique = "RRC", type = "cpdag")
-ida.total.2013 <- apply(ida.total.2013, 1, mean)
-names(ida.total.2013) <- colnames(cov_matrix_2013)[-5]
+ida.total.2013.mean <- apply(ida.total.2013, 1, mean)
+names(ida.total.2013.mean) <- colnames(cov_matrix_2013)[-5]
+ida.total.2013.sd <- apply(ida.total.2013, 1, sd)
+names(ida.total.2013.sd) <- colnames(cov_matrix_2013)[-5]
 
 ida.est.2013 <- vector("list", ncol(cov_matrix_2013))
 
@@ -560,7 +562,7 @@ for(i in 1:ncol(cov_matrix_2013)){
 
 names(ida.est.2013) <- colnames(cov_matrix_2013)
 
-ida.est.2013 <- lapply(ida.est.2013, function(x) {
+ida.est.2013.mean <- lapply(ida.est.2013, function(x) {
   x <- try(apply(x, 1, mean))
   if (inherits(x, "try-error")) {
     return(NA)
@@ -569,8 +571,8 @@ ida.est.2013 <- lapply(ida.est.2013, function(x) {
   }
 })
 
-ida.est.2013 <- do.call(cbind, ida.est.2013)
-rownames(ida.est.2013) <- colnames(cov_matrix_2013)
+ida.est.2013.mean <- do.call(cbind, ida.est.2013.mean)
+rownames(ida.est.2013.mean) <- colnames(cov_matrix_2013)
 
 ## 2015-2016####
 # Compute covariance matrix
@@ -587,8 +589,10 @@ pc_cpdag_2015 <- dag2cpdag(pc.fit.2015@graph)
 
 # Run jointIda with the regularized covariance matrix
 ida.total.2015 <- jointIda(x.pos = c(1, 3:13), y.pos = 2, cov_matrix_2015, pc_cpdag_2015, technique = "RRC", type = "cpdag")
-ida.total.2015 <- apply(ida.total.2015, 1, mean)
-names(ida.total.2015) <- colnames(cov_matrix_2015)[-2]
+ida.total.2015.mean <- apply(ida.total.2015, 1, mean)
+names(ida.total.2015.mean) <- colnames(cov_matrix_2015)[-2]
+ida.total.2015.sd <- apply(ida.total.2015, 1, sd)
+names(ida.total.2015.sd) <- colnames(cov_matrix_2015)[-2]
 
 ida.est.2015 <- vector("list", ncol(cov_matrix_2015))
 
@@ -603,7 +607,7 @@ for(i in 1:ncol(cov_matrix_2015)){
 
 names(ida.est.2015) <- colnames(cov_matrix_2015)
 
-ida.est.2015 <- lapply(ida.est.2015, function(x) {
+ida.est.2015.mean <- lapply(ida.est.2015, function(x) {
   x <- try(apply(x, 1, mean))
   if (inherits(x, "try-error")) {
     return(NA)
@@ -612,8 +616,8 @@ ida.est.2015 <- lapply(ida.est.2015, function(x) {
   }
 })
 
-ida.est.2015 <- do.call(cbind, ida.est.2015)
-rownames(ida.est.2015) <- colnames(cov_matrix_2015)
+ida.est.2015.mean <- do.call(cbind, ida.est.2015.mean)
+rownames(ida.est.2015.mean) <- colnames(cov_matrix_2015)
 
 ## 2017-2020####
 # Compute covariance matrix
@@ -627,9 +631,10 @@ pc_cpdag_2017 <- dag2cpdag(pc.fit.2017@graph)
 
 # Run jointIda with the regularized covariance matrix
 ida.total.2017 <- jointIda(x.pos = c(1, 3:13), y.pos = 2, cov_matrix_2017, pc_cpdag_2017, technique = "RRC", type = "cpdag")
-ida.total.2017 <- apply(ida.total.2017, 1, mean)
-
-names(ida.total.2017) <- colnames(cov_matrix_2017)[-2]
+ida.total.2017.mean <- apply(ida.total.2017, 1, mean)
+names(ida.total.2017.mean) <- colnames(cov_matrix_2017)[-2]
+ida.total.2017.sd <- apply(ida.total.2017, 1, sd)
+names(ida.total.2017.sd) <- colnames(cov_matrix_2017)[-2]
 
 ida.est.2017 <- vector("list", ncol(cov_matrix_2017))
 
@@ -644,7 +649,7 @@ for(i in 1:ncol(cov_matrix_2017)){
 
 names(ida.est.2017) <- colnames(cov_matrix_2017)
 
-ida.est.2017 <- lapply(ida.est.2017, function(x) {
+ida.est.2017.mean <- lapply(ida.est.2017, function(x) {
   x <- try(apply(x, 1, mean))
   if (inherits(x, "try-error")) {
     return(NA)
@@ -653,8 +658,8 @@ ida.est.2017 <- lapply(ida.est.2017, function(x) {
   }
 })
 
-ida.est.2017 <- do.call(cbind, ida.est.2017)
-rownames(ida.est.2017) <- colnames(cov_matrix_2017)
+ida.est.2017.mean <- do.call(cbind, ida.est.2017.mean)
+rownames(ida.est.2017.mean) <- colnames(cov_matrix_2017)
 
 ## 2021-2023####
 # Compute covariance matrix
@@ -668,12 +673,13 @@ isValidGraph(as(pc.fit.2021@graph, "matrix"), type = "cpdag")
 pc_cpdag_2021 <- dag2cpdag(pc.fit.2021@graph)
 
 # Run jointIda with the regularized covariance matrix
-ida.total.2021 <- ida(x.pos = 1, y.pos = 4, cov_matrix_2021, pc_cpdag_2021,method = "global", type = "cpdag")
+# ida.total.2021 <- ida(x.pos = 1, y.pos = 4, cov_matrix_2021, pc_cpdag_2021,method = "global", type = "cpdag")
 
 ida.total.2021 <- jointIda(x.pos = c(1:3, 5:13), y.pos = 4, cov_matrix_2021, pc_cpdag_2021, technique = "RRC", type = "cpdag")
-ida.total.2021 <- apply(ida.total.2021, 1, mean)
-
-names(ida.total.2021) <- colnames(cov_matrix_2021)[-4]
+ida.total.2021.mean <- apply(ida.total.2021, 1, mean)
+names(ida.total.2021.mean) <- colnames(cov_matrix_2021)[-4]
+ida.total.2021.sd <- apply(ida.total.2021, 1, sd)
+names(ida.total.2021.sd) <- colnames(cov_matrix_2021)[-4]
 
 ida.est.2021 <- vector("list", ncol(cov_matrix_2021))
 
@@ -688,7 +694,7 @@ for(i in 1:ncol(cov_matrix_2021)){
 
 names(ida.est.2021) <- colnames(cov_matrix_2021)
 
-ida.est.2021 <- lapply(ida.est.2021, function(x) {
+ida.est.2021.mean <- lapply(ida.est.2021, function(x) {
   x <- try(apply(x, 1, mean))
   if (inherits(x, "try-error")) {
     return(NA)
@@ -697,9 +703,12 @@ ida.est.2021 <- lapply(ida.est.2021, function(x) {
   }
 })
 
-ida.est.2021 <- do.call(cbind, ida.est.2021)
-rownames(ida.est.2021) <- colnames(cov_matrix_2021)
+ida.est.2021.mean <- do.call(cbind, ida.est.2021.mean)
+rownames(ida.est.2021.mean) <- colnames(cov_matrix_2021)
 
 save(ida.total.2013, ida.est.2013, ida.total.2015, ida.est.2015, ida.total.2017, ida.est.2017, 
-     ida.total.2021,
-     ida.est.2021, file = "data/cleaned/2013_to_2023_cleaned/ida_2013_2021.RData")
+     ida.total.2021,ida.est.2021, 
+     ida.total.2013.mean, ida.total.2015.mean, ida.total.2017.mean, ida.total.2021.mean,
+     ida.total.2013.sd, ida.total.2015.sd, ida.total.2017.sd, ida.total.2021.sd,
+     ida.est.2013.mean, ida.est.2015.mean, ida.est.2017.mean, ida.est.2021.mean,
+     file = "data/cleaned/2013_to_2023_cleaned/ida_2013_2021.RData")

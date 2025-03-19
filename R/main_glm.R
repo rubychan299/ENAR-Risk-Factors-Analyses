@@ -10,11 +10,48 @@ library(dplyr)
 library(jtools)
 
 # Define datasets
+dat_hyp_2013_glm <- lapply(dat_hyp_2013_final, function(x){
+  x <- x %>% 
+    select(SEQN, bp_control_jnc7, svy_weight_mec, svy_strata, svy_psu, 
+           demo_age_years, demo_gender, race,
+           HIQ011, OHQ845, PFQ049, PFQ054, 
+           cc_diabetes, cc_ckd, cc_cvd_chd, cc_cvd_stroke, cc_cvd_hf, cc_cvd_any, 
+           LBXSBU, LBDMONO, LBXRBCSI, LBXTC, 
+           phq9_category, cc_bmi, FSDAD, WHQ030)
+})
+
+dat_hyp_2015_glm <- lapply(dat_hyp_2015_final, function(x){
+  x <- x %>% 
+    select(SEQN, bp_control_jnc7, svy_weight_mec, svy_strata, svy_psu, 
+           demo_age_years, demo_gender,race,
+           HIQ011, cc_diabetes, cc_ckd, cc_cvd_chd,cc_cvd_hf, cc_cvd_any,
+           weight_change, LBXTC, phq9_category, cc_bmi, FSDAD, cc_smoke)
+})
+
+
+dat_hyp_2017_glm <- lapply(dat_hyp_2017_final, function(x){
+  x <- x %>% 
+    select(SEQN, bp_control_jnc7, svy_weight_mec, svy_strata, svy_psu, 
+           demo_age_years, demo_gender, race,
+           HIQ011, cc_diabetes, cc_ckd, URXUMS, LBXSBU, LBXSTR, LBDMONO,
+           LBXBPB, LBXTC, phq9_category, cc_bmi, WHQ030)
+})
+
+dat_hyp_2021_glm <- lapply(dat_hyp_2021_final, function(x){
+  x <- x %>% 
+    select(SEQN, bp_control_jnc7, svy_weight_mec, svy_strata, svy_psu, 
+           demo_age_years, demo_gender, demo_race, OHQ845,
+           cc_cvd_any, cc_diabetes, LBXRBCSI, LBXBPB, LBXTC,LBDMONO,
+           weight_change, cc_smoke, cc_bmi)
+})
+           
+           
+
 data_list_years <- list(
-  "2013" = dat_hyp_2013_final,
-  "2015" = dat_hyp_2015_final,
-  "2017" = dat_hyp_2017_final,
-  "2021" = dat_hyp_2021_final
+  "2013" = dat_hyp_2013_glm,
+  "2015" = dat_hyp_2015_glm,
+  "2017" = dat_hyp_2017_glm,
+  "2021" = dat_hyp_2021_glm
 )
 
 name_map <- c(
@@ -146,35 +183,49 @@ for (year in names(pooled_results_all_years)) {
 
 # 
 # 
-# > print(direct_causes_2013)
-# $G
-# HIQ011         OHQ845         PFQ049         PFQ054    cc_diabetes 
-# TRUE          FALSE           TRUE          FALSE          FALSE 
-# cc_ckd     cc_cvd_chd  cc_cvd_stroke      cc_cvd_hf     cc_cvd_any 
-# TRUE          FALSE          FALSE          FALSE          FALSE 
-# LBXSBU_resid   LBXSCH_resid  LBDMONO_resid LBXRBCSI_resid 
-# FALSE           TRUE          FALSE          FALSE 
-# 
-# $zMin
-# [1] 3.8148788 1.6410033 3.4745797 0.5102130 1.4034016 7.2168300 1.7787406
-# [8] 1.7643376 1.7569715 1.7692688 0.8840009 5.3219704 0.9091544 1.8412733
-# 
-# 
-# 
-# > print(direct_causes_2017)
-# $G
-# HIQ011   cc_diabetes        cc_ckd  URXUMS_resid  LBXSBU_resid  LBXSCH_resid 
-# TRUE         FALSE         FALSE          TRUE          TRUE         FALSE 
-# LBXSTR_resid  LBXSUA_resid LBDMONO_resid  LBXBPB_resid  LBXTHG_resid   LBXTC_resid 
-# FALSE         FALSE         FALSE          TRUE         FALSE          TRUE 
-# URXUCR_resid 
-# TRUE 
-# 
-# $zMin
-# [1] 3.6112352 1.7006872 1.6178593 4.5630418 3.6637426 1.0307871 0.7402599 1.2242403 1.5049523
-# [10] 3.3431299 1.2238056 5.5379609 3.7299303
+> print(direct_causes_2013)
+$G
+HIQ011              OHQ845              PFQ049              PFQ054 
+TRUE               FALSE                TRUE               FALSE 
+cc_diabetes              cc_ckd          cc_cvd_chd       cc_cvd_stroke 
+FALSE                TRUE               FALSE               FALSE 
+cc_cvd_hf          cc_cvd_any        LBXSBU_resid        LBXSCH_resid 
+FALSE               FALSE               FALSE                TRUE 
+LBDMONO_resid      LBXRBCSI_resid phq9_category_resid        cc_bmi_resid 
+FALSE               FALSE               FALSE               FALSE 
+FSDAD_resid        WHQ030_resid 
+FALSE               FALSE 
 
+$zMin
+[1] 3.8148788 1.6410033 3.4745797 0.5102130 1.4034016 7.2168300 1.7787406 1.7643376
+[9] 1.7569715 1.7692688 0.8840009 5.3219704 0.9091544 1.8412733 0.1487073 1.9362067
+[17] 1.0854345 1.6099408
+# > print(direct_causes_2015)
+$G
+HIQ011         cc_diabetes              cc_ckd          cc_cvd_chd 
+TRUE               FALSE                TRUE                TRUE 
+cc_cvd_hf          cc_cvd_any weight_change_resid         LBXTC_resid 
+FALSE               FALSE               FALSE                TRUE 
+phq9_category_resid        cc_bmi_resid         FSDAD_resid      cc_smoke_resid 
+FALSE                TRUE               FALSE               FALSE 
 
+$zMin
+[1] 3.3274910 1.5384707 7.6874310 3.0674844 0.3234180 0.3385707 1.9437050 5.2552383
+[9] 0.2296232 2.2629432 1.4143949 0.3306090
+# 
+$G
+HIQ011         cc_diabetes              cc_ckd        URXUMS_resid 
+TRUE               FALSE                TRUE                TRUE 
+LBXSBU_resid        LBXSCH_resid        LBXSTR_resid       LBDMONO_resid 
+TRUE               FALSE               FALSE               FALSE 
+LBXBPB_resid         LBXTC_resid phq9_category_resid        cc_bmi_resid 
+TRUE                TRUE               FALSE                TRUE 
+WHQ030_resid 
+FALSE 
+
+$zMin
+[1] 3.8072174 1.7006872 3.4328386 4.5180746 3.5157364 1.0307871 0.7402599 1.5049523
+[9] 2.8359868 5.2621229 1.9518518 2.8679429 0.9655353
 # > print(direct_causes_2021)
 # $G
 # HIQ011              KIQ022              OHQ845          cc_cvd_any 
