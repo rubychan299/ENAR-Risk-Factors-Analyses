@@ -122,7 +122,7 @@ ggdag_plot_2013 <- dag_tidy_2013 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2013.png", ggdag_plot_2013, width = 16, height = 12, dpi = 300)
+ggsave("plots/PC_graph_2013.png", ggdag_plot_2013, width = 13, height = 13.72, dpi = 300)
 
 # 2015####
 
@@ -211,7 +211,7 @@ ggdag_plot_2015 <- dag_tidy_2015 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2015.png", ggdag_plot_2015, width = 16, height = 12, dpi = 300)
+ggsave("plots/PC_graph_2015.png", ggdag_plot_2015, width = 13, height = 13.72, dpi = 300)
 
 # 2017####
 
@@ -300,7 +300,7 @@ ggdag_plot_2017 <- dag_tidy_2017 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2017.png", ggdag_plot_2017, width = 16, height = 12, dpi = 300)
+ggsave("plots/PC_graph_2017.png", ggdag_plot_2017, width = 13, height = 13.72, dpi = 300)
 
 # 2021####
 
@@ -389,6 +389,6 @@ ggdag_plot_2021 <- dag_tidy_2021 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2021.png", ggdag_plot_2021, width = 16, height = 12, dpi = 300)
+ggsave("plots/PC_graph_2021.png", ggdag_plot_2021, width = 13, height = 13.72, dpi = 300)
 
 save(ggdag_plot_2013, ggdag_plot_2015, ggdag_plot_2017, ggdag_plot_2021, file = "plots/PC_graphs.RData")
