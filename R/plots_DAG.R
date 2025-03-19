@@ -62,28 +62,27 @@ name_map <- c(
   "cc_cvd_stroke" = "Stroke",
   "cc_cvd_chd" = "Coronary Heart \nDisease",
   "cc_cvd_hf" = "Heart Failure",
-  "cc_bmi" = "Body Mass Index",
+  "cc_bmi_resid" = "Body Mass Index",
   "cc_ckd" = "Chronic Kidney \nDisease",
+  "cc_smoke_resid" = "Smoking Status",
   "HIQ011" = "Covered by \nHealth Insurance",
   "OHQ845" = "Oral Health",
-  "LBXRBCSI_resid" = "Red Blood Cell \nIndex",
+  "LBXRBCSI_resid" = "Red Blood Cell \nCount",
   "LBDMONO_resid" = "Monocyte Count",
-  "LBXSCH_resid" = "Serum \nCholesterol",
-  "LBXSTR_resid" = "Strontium",
-  "LBXSBU_resid" = "Serum Urea \nNitrogen",
+  "LBXSTR_resid" = "Triglycerides",
+  "LBXSBU_resid" = "Blood Urea \nNitrogen",
   "URXUMS_resid" = "Urinary \nAlbumin",
   "URXUCR_resid" = "Urinary Creatinine",
-  "LBXSUA_resid" = "Serum Uric Acid",
+  "LBXSUA_resid" = "Uric Acid",
   "LBXTC_resid" = "Total Cholesterol",
   "LBXTHG_resid" = "Blood Mercury",
   "LBXBPB_resid" = "Blood Lead",
-  "PFQ054" = "Physical Function: \nWalking",
-  "PFQ049" = "Physical Function: \nWorking",
-  "phq9_category" = "Depression",
-  "WHQ030_resid" = "Weight Status",
-  "FSDAD_resid" = "Food Security",
+  "PFQ054" = "Difficulty \nWalking",
+  "PFQ049" = "Difficulty \nWorking",
+  "phq9_category_resid" = "Depression",
+  "WHQ030_resid" = "Weight Perception",
+  "FSDAD_resid" = "Adult Food Security",
   "weight_change_resid" = "Weight Change",
-  "BMXBMI_resid" = "Body Mass Index",
   "KIQ022" = "Chronic Kidney \nDisease"
 )
 
@@ -96,8 +95,8 @@ dag_tidy_2013 <- tidy_dagitty(dag_model_2013) %>%
 
 # Ensure colors are assigned correctly to renamed nodes
 node_colors <- tibble(
-  name = dag_tidy$data$name,  
-  color = ifelse(dag_tidy$data$name == "BP control", "lightgoldenrod1", "lightblue")  
+  name = dag_tidy_2013$data$name,  
+  color = ifelse(dag_tidy_2013$data$name == "BP control", "lightgoldenrod1", "lightblue")  
 )
 
 ggdag_plot_2013 <- dag_tidy_2013 %>% 
@@ -123,7 +122,7 @@ ggdag_plot_2013 <- dag_tidy_2013 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2013.png", ggdag_plot_2013, width = 12, height = 10, dpi = 300)
+ggsave("plots/PC_graph_2013.png", ggdag_plot_2013, width = 16, height = 12, dpi = 300)
 
 # 2015####
 
@@ -212,7 +211,7 @@ ggdag_plot_2015 <- dag_tidy_2015 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2015.png", ggdag_plot_2015, width = 12, height = 10, dpi = 300)
+ggsave("plots/PC_graph_2015.png", ggdag_plot_2015, width = 16, height = 12, dpi = 300)
 
 # 2017####
 
@@ -301,7 +300,7 @@ ggdag_plot_2017 <- dag_tidy_2017 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2017.png", ggdag_plot_2017, width = 12, height = 10, dpi = 300)
+ggsave("plots/PC_graph_2017.png", ggdag_plot_2017, width = 16, height = 12, dpi = 300)
 
 # 2021####
 
@@ -390,6 +389,6 @@ ggdag_plot_2021 <- dag_tidy_2021 %>%
   ) 
 
 # Save plot
-ggsave("plots/PC_graph_2021.png", ggdag_plot_2021, width = 12, height = 10, dpi = 300)
+ggsave("plots/PC_graph_2021.png", ggdag_plot_2021, width = 16, height = 12, dpi = 300)
 
 save(ggdag_plot_2013, ggdag_plot_2015, ggdag_plot_2017, ggdag_plot_2021, file = "plots/PC_graphs.RData")

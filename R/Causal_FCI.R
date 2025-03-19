@@ -28,8 +28,14 @@ dat_hyp_2013_final_cat <- lapply(dat_hyp_2013_final, function(x){
 dat_hyp_2013_final_continuous <- lapply(dat_hyp_2013_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race)
-  x <- x[!colnames(x) %in% categorical_vars_2013]})
+           -race) %>% 
+    mutate(across(where(is.character), as.factor)) %>% 
+    mutate(phq9_category = as.numeric(phq9_category),
+           cc_bmi = as.numeric(cc_bmi), 
+           FSDAD = as.numeric(FSDAD), 
+           WHQ030 = as.numeric(WHQ030))
+  x <- cbind(x[!colnames(x) %in% categorical_vars_2013], x %>% select(phq9_category, cc_bmi, FSDAD, WHQ030))
+  x <- x %>% mutate(across(where(is.double), as.numeric))})
 
 
 dat_hyp_2013_final_control <- lapply(dat_hyp_2013_final, function(x){
@@ -82,8 +88,14 @@ dat_hyp_2015_final_cat <- lapply(dat_hyp_2015_final, function(x){
 dat_hyp_2015_final_continuous <- lapply(dat_hyp_2015_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race)
-  x <- x[!colnames(x) %in% categorical_vars_2015]})
+           -race) %>% 
+    mutate(across(where(is.character), as.factor)) %>% 
+    mutate(phq9_category = as.numeric(phq9_category),
+           cc_bmi = as.numeric(cc_bmi), 
+           FSDAD = as.numeric(FSDAD), 
+           cc_smoke = as.numeric(cc_smoke))
+  x <- cbind(x[!colnames(x) %in% categorical_vars_2015], x %>% select(phq9_category, cc_bmi, FSDAD, cc_smoke))
+  x <- x %>% mutate(across(where(is.double), as.numeric))})
 
 
 dat_hyp_2015_final_control <- lapply(dat_hyp_2015_final, function(x){
@@ -134,9 +146,16 @@ dat_hyp_2017_final_cat <- lapply(dat_hyp_2017_final, function(x){
 dat_hyp_2017_final_continuous <- lapply(dat_hyp_2017_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race) %>% 
-    mutate(URXUMS = log(URXUMS))
-  x <- x[!colnames(x) %in% categorical_vars_2017]})
+           -race,-LBXTHG, -URXUCR, -LBXSUA) %>% 
+    mutate(across(where(is.character), as.factor)) %>% 
+    mutate(phq9_category = as.numeric(phq9_category),
+           cc_bmi = as.numeric(cc_bmi), 
+           WHQ030 = as.numeric(WHQ030),
+           URXUMS = log(URXUMS),
+           LBXSTR = log(LBXSTR)
+           )
+  x <- cbind(x[!colnames(x) %in% categorical_vars_2017], x %>% select(phq9_category, cc_bmi, WHQ030))
+  x <- x %>% mutate(across(where(is.double), as.numeric))})
 
 
 dat_hyp_2017_final_control <- lapply(dat_hyp_2017_final, function(x){
@@ -178,7 +197,7 @@ categorical_vars_2021 <- dat_hyp_2021_fci[[1]] %>% select(where(is.character), w
 # Convert categorical variables to factors
 dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_fci, function(x){
   x <- x %>%
-    select(-demo_gender,-demo_race, -cc_smoke) %>%
+    select(-demo_gender,-demo_race, -cc_smoke, -cc_bmi) %>%
     mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2021]
   x <- predict(dummyVars("~ .", data = x), x)
@@ -188,8 +207,12 @@ dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_fci, function(x){
 
 dat_hyp_2021_final_continuous <- lapply(dat_hyp_2021_fci, function(x){
   x <- x %>%
-    select(-demo_gender,-demo_race)
-  x <- x[!colnames(x) %in% categorical_vars_2021]})
+    select(-demo_gender,-demo_race, -LBXTHG, -BMXBMI) %>% 
+    mutate(across(where(is.character), as.factor)) %>%
+    mutate(cc_smoke = as.numeric(cc_smoke),
+           cc_bmi = as.numeric(cc_bmi))
+  x <- cbind(x[!colnames(x) %in% categorical_vars_2021], x %>% select(cc_smoke, cc_bmi))
+  x <- x %>% mutate(across(where(is.double), as.numeric))})
 
 
 dat_hyp_2021_final_control <- lapply(dat_hyp_2021_fci, function(x){
@@ -229,23 +252,25 @@ resid_2021 <- lapply(dat_hyp_2021_fci, function(df) {
 load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_hyp_fci_2013_2017.RData")
 
 ## Define tiers####
-Tiers_2013 <- c(3, 3, 3, 3, 4, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1)
+Tiers_2013 <- c(3, 3, 3, 3, 4, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 3, 2, 1, 2)
 Context_2013 <- c("HIQ011", "OHQ845", "PFQ049", "PFQ054", "bp_control_jnc7", "cc_diabetes", "cc_ckd", "cc_cvd_chd", 
-                  "cc_cvd_stroke", "cc_cvd_hf", "cc_cvd_any", "LBXSBU_resid", "LBXSCH_resid", "LBDMONO_resid", "LBXRBCSI_resid")
+                  "cc_cvd_stroke", "cc_cvd_hf", "cc_cvd_any", "LBXSBU_resid", "LBDMONO_resid", "LBXRBCSI_resid",
+                  "LBXTC_resid", "phq9_category_resid","cc_bmi_resid","FSDAD_resid", "WHQ030_resid")
 
-Tiers_2015 <- c(3, 4, 2, 2, 2, 2, 2, 3, 1, 1)
+Tiers_2015 <- c(3, 4, 2, 2, 2, 2, 2, 3, 1, 3, 2, 1, 1)
 Context_2015 <- c("HIQ011", "bp_control_jnc7", "cc_diabetes", "cc_ckd", "cc_cvd_chd", "cc_cvd_hf", "cc_cvd_any", 
-                  "weight_change_resid", "LBXSCH_resid", "LBXTC_resid")
+                  "weight_change_resid", "LBXTC_resid","phq9_category_resid","cc_bmi_resid",      
+                  "FSDAD_resid","cc_smoke_resid")
 
-Tiers_2017 <- c(3, 4, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+Tiers_2017 <- c(3, 4, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2)
 Context_2017 <- c("HIQ011", "bp_control_jnc7", "cc_diabetes", "cc_ckd", "URXUMS_resid", "LBXSBU_resid", 
-                  "LBXSCH_resid", "LBXSTR_resid", "LBXSUA_resid", "LBDMONO_resid", "LBXBPB_resid", 
-                  "LBXTHG_resid", "LBXTC_resid", "URXUCR_resid") 
+                  "LBXSTR_resid", "LBDMONO_resid", "LBXBPB_resid", 
+                  "LBXTC_resid", "phq9_category_resid","cc_bmi_resid","WHQ030_resid")
 
-Tiers_2021 <- c(3, 3, 3, 4, 2, 2, 1, 1, 1, 1, 1, 1, 3)
+Tiers_2021 <- c(3, 3, 3, 4, 2, 1, 1, 1, 1, 1, 3, 1, 2)
 Context_2021 <- c("HIQ011", "KIQ022", "OHQ845", "bp_control_jnc7", "cc_cvd_any", "cc_diabetes", 
-                  "BMXBMI_resid", "LBXRBCSI_resid", "LBXBPB_resid", "LBXTHG_resid", "LBXTC_resid", 
-                  "LBDMONO_resid", "weight_change_resid")
+                  "LBXRBCSI_resid", "LBXBPB_resid", "LBXTC_resid", 
+                  "LBDMONO_resid", "weight_change_resid", "cc_smoke_resid", "cc_bmi_resid")
 
 # tier 1: lab variables
 # tier 2: diseases 
@@ -267,13 +292,13 @@ adj_matrix_2013 <- as(fci.fit.2013@amat, "matrix")  # Convert to standard matrix
 graph_fci_2013 <- graph_from_adjacency_matrix(adj_matrix_2013, mode = "directed", diag = FALSE)
 
 # Plot the graph
-plot(graph_fci_2013, 
-     vertex.label = V(graph_fci_2013)$name, 
-     vertex.size = 20, 
-     edge.arrow.size = 0.5, 
-     main = "FCI Causal Graph")
+# plot(graph_fci_2013, 
+#      vertex.label = V(graph_fci_2013)$name, 
+#      vertex.size = 20, 
+#      edge.arrow.size = 0.5, 
+#      main = "FCI Causal Graph")
 
-plot(graph_fci_2013)
+# plot(graph_fci_2013)
 
 # Highlight the outcome variable
 V(graph_fci_2013)$color <- ifelse(V(graph_fci_2013)$name == "bp_control_jnc7", "red", "lightblue")
@@ -285,8 +310,6 @@ plot(graph_fci_2013,
      edge.arrow.size = 0.05, 
      main = paste("Causal Graph 2013-2014 - Outcome:", "bp_control_jnc7"))
 
-
-
 # Create a node attribute list to change the color of the outcome variable
 attrs <- list(
   node = list(fillcolor = "lightblue", fontsize = 14),  # Default style
@@ -297,7 +320,7 @@ attrs <- list(
 nodeAttrs <- list(fillcolor = setNames(rep("red", 1), "bp_control_jnc7"))  # Outcome node in red
 
 # Plot the graph with the highlighted outcome variable
-plot(pc.fit.2013@graph, attxrs = attrs, nodeAttrs = nodeAttrs)
+# plot(pc.fit.2013@graph, attxrs = attrs, nodeAttrs = nodeAttrs)
 
 # Convert PC adjacency matrix to igraph format
 graph_pc_2013 <- igraph::graph_from_graphnel(pc.fit.2013@graph)
@@ -520,13 +543,13 @@ isValidGraph(as(pc.fit.2013@graph, "matrix"), type = "cpdag")
 pc_cpdag_2013 <- dag2cpdag(pc.fit.2013@graph)
 
 # Run jointIda with the regularized covariance matrix
-ida.total.2013 <- jointIda(x.pos = c(1:4, 6:15), y.pos = 5, cov_matrix_2013, pc_cpdag_2013, technique = "RRC", type = "cpdag")
+ida.total.2013 <- jointIda(x.pos = c(1:4, 6:19), y.pos = 5, cov_matrix_2013, pc_cpdag_2013, technique = "RRC", type = "cpdag")
 ida.total.2013 <- apply(ida.total.2013, 1, mean)
 names(ida.total.2013) <- colnames(cov_matrix_2013)[-5]
 
 ida.est.2013 <- vector("list", ncol(cov_matrix_2013))
 
-for(i in 1:ncol(cov_matrix)){
+for(i in 1:ncol(cov_matrix_2013)){
   ida.est.2013[[i]] <- try(idaFast(
     x.pos = i,  # All variables as potential causes
     y.pos = 1:ncol(cov_matrix_2013),  # All variables as potential effects
@@ -563,13 +586,13 @@ isValidGraph(as(pc.fit.2015@graph, "matrix"), type = "cpdag")
 pc_cpdag_2015 <- dag2cpdag(pc.fit.2015@graph)
 
 # Run jointIda with the regularized covariance matrix
-ida.total.2015 <- jointIda(x.pos = c(1, 3:10), y.pos = 2, cov_matrix_2015, pc_cpdag_2015, technique = "RRC", type = "cpdag")
+ida.total.2015 <- jointIda(x.pos = c(1, 3:13), y.pos = 2, cov_matrix_2015, pc_cpdag_2015, technique = "RRC", type = "cpdag")
 ida.total.2015 <- apply(ida.total.2015, 1, mean)
 names(ida.total.2015) <- colnames(cov_matrix_2015)[-2]
 
 ida.est.2015 <- vector("list", ncol(cov_matrix_2015))
 
-for(i in 1:ncol(cov_matrix)){
+for(i in 1:ncol(cov_matrix_2015)){
   ida.est.2015[[i]] <- try(idaFast(
     x.pos = i,  # All variables as potential causes
     y.pos = 1:ncol(cov_matrix_2015),  # All variables as potential effects
@@ -603,14 +626,14 @@ isValidGraph(as(pc.fit.2017@graph, "matrix"), type = "cpdag")
 pc_cpdag_2017 <- dag2cpdag(pc.fit.2017@graph)
 
 # Run jointIda with the regularized covariance matrix
-ida.total.2017 <- jointIda(x.pos = c(1, 3:14), y.pos = 2, cov_matrix_2017, pc_cpdag_2017, technique = "RRC", type = "cpdag")
+ida.total.2017 <- jointIda(x.pos = c(1, 3:13), y.pos = 2, cov_matrix_2017, pc_cpdag_2017, technique = "RRC", type = "cpdag")
 ida.total.2017 <- apply(ida.total.2017, 1, mean)
 
 names(ida.total.2017) <- colnames(cov_matrix_2017)[-2]
 
 ida.est.2017 <- vector("list", ncol(cov_matrix_2017))
 
-for(i in 1:ncol(cov_matrix)){
+for(i in 1:ncol(cov_matrix_2017)){
   ida.est.2017[[i]] <- try(idaFast(
     x.pos = i,  # All variables as potential causes
     y.pos = 1:ncol(cov_matrix_2017),  # All variables as potential effects
@@ -654,7 +677,7 @@ names(ida.total.2021) <- colnames(cov_matrix_2021)[-4]
 
 ida.est.2021 <- vector("list", ncol(cov_matrix_2021))
 
-for(i in 1:ncol(cov_matrix)){
+for(i in 1:ncol(cov_matrix_2021)){
   ida.est.2021[[i]] <- try(idaFast(
     x.pos = i,  # All variables as potential causes
     y.pos = 1:ncol(cov_matrix_2021),  # All variables as potential effects
@@ -678,5 +701,5 @@ ida.est.2021 <- do.call(cbind, ida.est.2021)
 rownames(ida.est.2021) <- colnames(cov_matrix_2021)
 
 save(ida.total.2013, ida.est.2013, ida.total.2015, ida.est.2015, ida.total.2017, ida.est.2017, 
-     # ida.total.2021, 
+     ida.total.2021,
      ida.est.2021, file = "data/cleaned/2013_to_2023_cleaned/ida_2013_2021.RData")

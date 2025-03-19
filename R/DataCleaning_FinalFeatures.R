@@ -20,7 +20,7 @@ features_en_jnc$`2017`
 
 features_2013 <- c(
   "cc_ckd", "cc_cvd_any",
-  "HIQ011", "cc_cvd_hf", "LBXSCH",
+  "HIQ011", "cc_cvd_hf", "LBXTC",
   "PFQ049", "cc_diabetes", "cc_bmi",
   "PFQ054",  "phq9_category",
   "WHQ030", "OHQ845",
@@ -40,7 +40,7 @@ features_2015 <- c(
   "cc_ckd", "MCQ080",
   "cc_cvd_chd", "SLQ050", "cc_cvd_hf",
   "HIQ011", "PFQ051", "LBXTC",
-  "LBXSCH", "demo_gender","demo_age_years", 
+  "LBXTC", "demo_gender","demo_age_years", 
   "FSDHH", "race", "cc_bmi","cc_smoke", "race",
   "cc_cvd_any", "race", "FSDAD",
   "FSDAD", "phq9_category", "cc_diabetes","weight_change",
@@ -55,7 +55,7 @@ features_2017 <- c(
   "cc_bmi", "LBXSBU", "race", "cc_diabetes",
   "demo_gender","demo_age_years", 
   "MCQ080", "LBXSTR", "LBXBPB", "PAQ605",
-  "WHQ030", "LBXSUA", "LBXSCH",
+  "WHQ030", "LBXSUA", 
   "PAQ620", "LBXTC", "URXUMS",
   "LBXTHG", "KIQ022", "phq9_category", "URXUCR",
   "LBDMONO", "SEQN", "svy_weight_mec", 

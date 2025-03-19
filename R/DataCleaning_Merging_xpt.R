@@ -982,7 +982,13 @@ data_2021 <- data_2021 %>%
     OHQ845 = case_when(
       OHQ845 %in% c(1:3) ~ "Good and Above",
       OHQ845 %in% c(4:5) ~ "Fair/Poor",
-      TRUE ~ NA_character_))
+      TRUE ~ NA_character_),
+    cc_bmi = case_when(
+      BMXBMI < 25 ~ "<25",
+      BMXBMI >= 25 & BMXBMI < 30 ~ "25 to <30",
+      BMXBMI >= 30 & BMXBMI < 35 ~ "30 to <35",
+      BMXBMI >= 35 ~ "35+"
+    ) %>% factor(levels = c("<25", "25 to <30", "30 to <35", "35+")))
 
 miceObj_2021 <- mice::mice(data_2021, method = "cart")
 dat_hyp_mice_2021 <- mice::complete(miceObj_2021, "all")
