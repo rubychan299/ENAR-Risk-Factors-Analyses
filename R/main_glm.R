@@ -40,9 +40,9 @@ dat_hyp_2017_glm <- lapply(dat_hyp_2017_final, function(x){
 dat_hyp_2021_glm <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>% 
     select(SEQN, bp_control_jnc7, svy_weight_mec, svy_strata, svy_psu, 
-           demo_age_years, demo_gender, demo_race, OHQ845,
-           cc_cvd_any, cc_diabetes, LBXRBCSI, LBXBPB, LBXTC,LBDMONO,
-           weight_change, cc_smoke, cc_bmi)
+           demo_age_years, demo_gender, demo_race, HIQ011,
+           cc_cvd_any, cc_diabetes, LBXBPB, LBXTC,
+           phq9_category, cc_bmi)
 })
            
            
@@ -185,7 +185,7 @@ for (year in names(pooled_results_all_years)) {
 # kick out: cc_diabetes
 
 # 2021
-# keep: 
+# keep everything
   
 # Define datasets
 dat_hyp_2013_glm_sub <- lapply(dat_hyp_2013_glm, function(x){
@@ -297,7 +297,7 @@ for (year in names(data_list_years)) {
 for (year in names(pooled_results_all_years)) {
   file_name <- paste0("tables/", year, "glm_sub.csv")
   write.csv(pooled_results_all_years[[year]], file = file_name, row.names = FALSE)
-  file_name_svy <- paste0("tables/", year, "glm_sub.csv")
+  file_name_svy <- paste0("tables/", year, "svyglm_sub.csv")
   write.csv(pooled_results_all_years_svy[[year]], file = file_name_svy, row.names = FALSE)
   
   cat("\nSaved results for", year, "to", file_name, "\n")

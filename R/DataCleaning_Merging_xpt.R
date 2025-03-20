@@ -90,8 +90,9 @@ datasets_2021 <- mget(qdatasets_2021, envir = .GlobalEnv)
 datasets_2021 <- select_variable(datasets_2021, quesvars)
 datasets_2021 <- lapply(datasets_2021, function(df) {
   df <- as.data.frame(df)  # Ensure it's a data frame
-  df <- df %>% mutate(Year = '2021')  %>% 
-    select(where(~mean(is.na(.)) < 0.5))
+  # increase the threshold to 0.66 to maintain BPQ150
+  df <- df %>% mutate(Year = '2021')  %>%
+    select(where(~mean(is.na(.)) < 0.66))
   
   return(df)
 })
@@ -650,6 +651,8 @@ dat_full_2013_2020 <- dat_full %>%
 dat_full_2021 <- dat_full %>%
   filter(Year == 2021) 
 
+save(demo_df,dat_full_2021, file = "data/cleaned/dat_full_2021.RData")
+
 # dat_full <- dat_full %>% 
 #   left_join(nhanes_data, by = c('SEQN','Year'))
 
@@ -853,45 +856,195 @@ save(dat_hyp_2013_std_train, dat_hyp_2013_std_test, dat_hyp_2015_std_train,
 
 # clean 2021####
 
+# rm(list = ls())
+# 
+# load('data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData')
+# load('data/cleaned/2013_to_2023_cleaned/top_features_ES.RData')
+# load('data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData')
+# 
+# clean_names <- function(features) {
+#   sub("\\..*", "", features)
+# }
+# 
+# # Apply the cleaning function to each feature list
+# cleaned_2013 <- clean_names(top_features_2013)
+# cleaned_2015 <- clean_names(top_features_2015)
+# cleaned_2017 <- clean_names(top_features_2017)
+# 
+# # Find the intersection of the cleaned variable names
+# common_features <- intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017)
+# union_features <- union(union(cleaned_2013, cleaned_2015), cleaned_2017)
+# 
+# data_dir <- "data/2021_to_2023_data"
+# xpt_files <- list.files(data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+# matching_files <- c()
+# for (file in xpt_files) {
+#   # Read the .xpt file
+#   df <- tryCatch(read_xpt(file), error = function(e) NULL)
+#   
+#   # Skip files that could not be read
+#   if (is.null(df)) next
+#   
+#   # Check if any variable in union_features exists in the dataset
+#   matched_vars <- intersect(names(df), union_features)
+#   
+#   if (length(matched_vars) > 0) {
+#     matching_files[[file]] <- matched_vars  # Store the matched variables
+#   }
+# }
+# print(matching_files) # the ones i don't need to recode 
+# 
+# files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "HDL_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt", "CBC_L.xpt", "PBCD_L.xpt", "TCHOL_L.xpt", "HIQ_L.xpt", "KIQ_U_L.xpt", "OHQ_L.xpt") 
+# xpt_files <- list.files(path = data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
+# xpt_files <- xpt_files[basename(xpt_files) %in% files_needed]
+# 
+# datasets <- lapply(xpt_files, function(file) {
+#   df <- read_xpt(file) %>% as.data.frame()
+#   return(df)
+# })
+# 
+# data <- Reduce(function(x, y) inner_join(x, y, by = "SEQN"), datasets)
+# 
+# data <- data %>%
+#   mutate(
+#     svy_psu = SDMVPSU,
+#     svy_strata = SDMVSTRA,
+#     svy_weight_mec = WTMEC2YR,
+#     
+#     demo_race = case_when(
+#       RIDRETH3 == 3 ~ "Non-Hispanic White",
+#       RIDRETH3 == 4 ~ "Non-Hispanic Black",
+#       RIDRETH3 == 6 ~ "Non-Hispanic Asian",
+#       RIDRETH3 %in% c(1, 2) ~ "Hispanic",
+#       RIDRETH3 == 7 ~ "Other",
+#       TRUE ~ NA_character_
+#     ) %>% factor(levels = c("Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic Asian", "Hispanic", "Other")),
+#     
+#     demo_gender = factor(RIAGENDR, labels = c("Men", "Women")),
+#     demo_age_years = as.numeric(RIDAGEYR),
+#     
+#     across(starts_with("WHD"), ~ ifelse(
+#       .x %in% c(7777, 9999),NA, .x)),
+#     
+#     weight_change = as.numeric(WHD020) - as.numeric(WHD050),
+#     
+#     BPXSY = rowMeans(select(., BPXOSY1, BPXOSY2, BPXOSY3), na.rm = TRUE) + 1.5, 
+#     BPXDI = rowMeans(select(., BPXODI1, BPXODI2, BPXODI3), na.rm = TRUE) - 1.3, 
+#     
+#     bp_control_jnc7 = factor(ifelse(BPXSY < 140 & BPXDI < 90, "Yes", "No"), levels = c("No", "Yes")),
+#     
+#     htn_jnc7 = case_when(
+#       BPXSY >= 140 | BPXDI >= 90 | BPQ150 ~ "Yes",
+#       TRUE ~ "No"
+#     ) %>% factor(levels = c("No", "Yes")),
+#     
+#     cc_cvd_any = case_when(
+#       if_any(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 1) ~ "Yes",
+#       if_all(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 2) ~ "No",
+#       TRUE ~ NA_character_
+#     ) %>% factor(levels = c("No", "Yes")),
+#     
+#     cc_diabetes = case_when(
+#       DIQ070 == 1 | DIQ010 == 1 ~ "Yes",
+#       DIQ070 == 2 | DIQ010 %in% c(2,3) ~ "No",
+#       TRUE ~ NA_character_
+#     ) %>% factor(levels = c("No", "Yes")),
+#     
+#     cc_smoke = case_when(
+#       SMQ040 %in% c(1, 2) ~ "Current",  # If SMQ040 is 1 or 2 → "Current"
+#       SMQ040 %in% c(2, 3) & SMQ020 == 1 ~ "Former",  # If SMQ040 is 2 or 3 AND SMQ020 == 1 → "Former"
+#       SMQ040 == 3 & SMQ020 == 2 ~ "Never",  # If SMQ040 is 3 AND SMQ020 == 2 → "Never"
+#       SMQ020 == 2 ~ "Never", # SMQ040 has a lot missing, so 
+#       TRUE ~ NA_character_  # Assign NA if none of the conditions match
+#     ) %>% factor(levels = c("Never", "Former", "Current"))
+#   ) %>%
+#   select(
+#     SEQN, BMXBMI, LBXRBCSI, LBXBPB, LBXTHG, LBXTC, HIQ011, KIQ022, OHQ845, LBDMONO,
+#     svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
+#     weight_change, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke
+#   )
+# 
+# # Check missingness
+# missing_summary <- data %>%
+#   summarise(across(everything(), ~ sum(is.na(.)))) %>%
+#   pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Count") %>%
+#   arrange(desc(Missing_Count))
+# 
+# print(missing_summary)
+# 
+# save(data, file = "data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
+# 
+# load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
+# 
+# data_2021 <- data
+# 
+# data_2021 <- data_2021 %>% 
+#   mutate(HIQ011 = case_when(
+#     HIQ011 == 1 ~ "Yes",
+#     HIQ011 == 2 ~ "No",
+#     TRUE ~ NA_character_),
+#     KIQ022 = case_when(
+#       KIQ022 == 1 ~ "Yes",
+#       KIQ022 == 2 ~ "No",
+#       TRUE ~ NA_character_),
+#     OHQ845 = case_when(
+#       OHQ845 %in% c(1:3) ~ "Good and Above",
+#       OHQ845 %in% c(4:5) ~ "Fair/Poor",
+#       TRUE ~ NA_character_),
+#     cc_bmi = case_when(
+#       BMXBMI < 25 ~ "<25",
+#       BMXBMI >= 25 & BMXBMI < 30 ~ "25 to <30",
+#       BMXBMI >= 30 & BMXBMI < 35 ~ "30 to <35",
+#       BMXBMI >= 35 ~ "35+"
+#     ) %>% factor(levels = c("<25", "25 to <30", "30 to <35", "35+")))
+# 
+# miceObj_2021 <- mice::mice(data_2021, method = "cart")
+# dat_hyp_mice_2021 <- mice::complete(miceObj_2021, "all")
+# 
+# View(dat_hyp_mice_2021[[1]] %>%
+#        summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+#        pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage") %>% 
+#        filter(Missing_Percentage > 0))
+# 
+# dat_hyp_mice_2021 <- lapply(dat_hyp_mice_2021, function(df){
+#   df <- df  %>% 
+#     na.omit()
+# })
+# 
+# 
+# 
+# categorical_vars_2021 <- dat_hyp_mice_2021[[1]] %>% select(where(is.character), where(is.factor)) %>% colnames()
+# 
+# dat_hyp_2021_cat <- lapply(dat_hyp_mice_2021, function(x){
+#   x <- x %>% 
+#     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata) %>% 
+#     mutate(across(where(is.character), as.factor))
+#   x <- x[colnames(x) %in% categorical_vars_2021]
+# })
+# 
+# dat_hyp_2021_continuous <- lapply(dat_hyp_mice_2021, function(x){
+#   x <- x %>% 
+#     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata)  
+#   x <- x[!colnames(x) %in% categorical_vars_2021]
+#   x <- x %>% mutate(across(where(is.double), as.numeric))})
+# 
+# svy_vars_2021 <- lapply(dat_hyp_mice_2021, function(x){x <- x %>% 
+#   select(SEQN,svy_weight_mec, svy_psu, svy_strata)})
+# 
+# dat_hyp_2021_fci <- Map(cbind, dat_hyp_2021_cat, dat_hyp_2021_continuous)
+# 
+# dat_hyp_2021_final <- Map(cbind, svy_vars_2021, dat_hyp_2021_fci)
+# 
+# save(dat_hyp_2021_fci,dat_hyp_2021_final, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
+
 rm(list = ls())
 
-load('data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData')
-load('data/cleaned/2013_to_2023_cleaned/top_features_ES.RData')
-load('data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData')
-
-clean_names <- function(features) {
-  sub("\\..*", "", features)
-}
-
-# Apply the cleaning function to each feature list
-cleaned_2013 <- clean_names(top_features_2013)
-cleaned_2015 <- clean_names(top_features_2015)
-cleaned_2017 <- clean_names(top_features_2017)
-
-# Find the intersection of the cleaned variable names
-common_features <- intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017)
-union_features <- union(union(cleaned_2013, cleaned_2015), cleaned_2017)
+load("data/cleaned/dat_full_2021.RData")
 
 data_dir <- "data/2021_to_2023_data"
 xpt_files <- list.files(data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
-matching_files <- c()
-for (file in xpt_files) {
-  # Read the .xpt file
-  df <- tryCatch(read_xpt(file), error = function(e) NULL)
-  
-  # Skip files that could not be read
-  if (is.null(df)) next
-  
-  # Check if any variable in union_features exists in the dataset
-  matched_vars <- intersect(names(df), union_features)
-  
-  if (length(matched_vars) > 0) {
-    matching_files[[file]] <- matched_vars  # Store the matched variables
-  }
-}
-print(matching_files) # the ones i don't need to recode 
 
-files_needed <- c("DEMO_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "HDL_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt", "CBC_L.xpt", "PBCD_L.xpt", "TCHOL_L.xpt", "HIQ_L.xpt", "KIQ_U_L.xpt", "OHQ_L.xpt") 
+files_needed <- c("DEMO_L.xpt", "BPQ_L.xpt", "BMX_L.xpt", "BPXO_L.xpt", "INQ_L.xpt", "HDL_L.xpt", "WHQ_L.xpt", "MCQ_L.xpt", "SMQ_L.xpt", "DIQ_L.xpt", "CBC_L.xpt", "PBCD_L.xpt", "TCHOL_L.xpt", "HIQ_L.xpt", "KIQ_U_L.xpt", "OHQ_L.xpt") 
 xpt_files <- list.files(path = data_dir, pattern = "\\.xpt$", recursive = TRUE, full.names = TRUE)
 xpt_files <- xpt_files[basename(xpt_files) %in% files_needed]
 
@@ -930,6 +1083,11 @@ data <- data %>%
     
     bp_control_jnc7 = factor(ifelse(BPXSY < 140 & BPXDI < 90, "Yes", "No"), levels = c("No", "Yes")),
     
+    htn_jnc7 = case_when(
+      BPXSY >= 140 | BPXDI >= 90 | BPQ150 ~ "Yes",
+      TRUE ~ "No"
+    ) %>% factor(levels = c("No", "Yes")),
+    
     cc_cvd_any = case_when(
       if_any(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 1) ~ "Yes",
       if_all(c(MCQ160E, MCQ160F, MCQ160C, MCQ160B), ~ . == 2) ~ "No",
@@ -948,49 +1106,40 @@ data <- data %>%
       SMQ040 == 3 & SMQ020 == 2 ~ "Never",  # If SMQ040 is 3 AND SMQ020 == 2 → "Never"
       SMQ020 == 2 ~ "Never", # SMQ040 has a lot missing, so 
       TRUE ~ NA_character_  # Assign NA if none of the conditions match
-    ) %>% factor(levels = c("Never", "Former", "Current"))
-  ) %>%
-  select(
-    SEQN, BMXBMI, LBXRBCSI, LBXBPB, LBXTHG, LBXTC, HIQ011, KIQ022, OHQ845, LBDMONO,
-    svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
-    weight_change, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke
-  )
-
-# Check missingness
-missing_summary <- data %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Count") %>%
-  arrange(desc(Missing_Count))
-
-print(missing_summary)
-
-save(data, file = "data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
-
-load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_unimputed_2021_2023.RData")
-
-data_2021 <- data
-
-data_2021 <- data_2021 %>% 
-  mutate(HIQ011 = case_when(
-    HIQ011 == 1 ~ "Yes",
-    HIQ011 == 2 ~ "No",
-    TRUE ~ NA_character_),
-    KIQ022 = case_when(
-      KIQ022 == 1 ~ "Yes",
-      KIQ022 == 2 ~ "No",
-      TRUE ~ NA_character_),
-    OHQ845 = case_when(
-      OHQ845 %in% c(1:3) ~ "Good and Above",
-      OHQ845 %in% c(4:5) ~ "Fair/Poor",
-      TRUE ~ NA_character_),
+    ) %>% factor(levels = c("Never", "Former", "Current")),
+    
     cc_bmi = case_when(
       BMXBMI < 25 ~ "<25",
       BMXBMI >= 25 & BMXBMI < 30 ~ "25 to <30",
       BMXBMI >= 30 & BMXBMI < 35 ~ "30 to <35",
       BMXBMI >= 35 ~ "35+"
-    ) %>% factor(levels = c("<25", "25 to <30", "30 to <35", "35+")))
+    ) %>% factor(levels = c("<25", "25 to <30", "30 to <35", "35+"))
+  ) %>%
+  select(
+    SEQN, 
+    svy_psu, svy_strata, svy_weight_mec, demo_race, demo_gender, demo_age_years, 
+    htn_jnc7, bp_control_jnc7, cc_cvd_any, cc_diabetes, cc_smoke, cc_bmi
+  )
 
-miceObj_2021 <- mice::mice(data_2021, method = "cart")
+
+dat_hyp_2021 <- dat_full_2021 %>%
+  full_join(data, by = "SEQN")
+
+dat_hyp_2021 <- dat_hyp_2021[dat_hyp_2021$htn_jnc7 == "Yes",]
+
+dat_hyp_2021 <- dat_hyp_2021 %>% 
+  filter(!is.na(svy_psu)) %>%
+  select(-BPQ150, -BPXSY, -BPQ020, -BPXDI, -BPXPULS, -htn_jnc7, 
+         -DXDTRBMD, -DXXLABMD, -LBDLDL, -URXUCR, -LBXCOT, -phq9, -BMXBMI,
+         -hearing_loss) %>% 
+  select(where(~mean(is.na(.)) < 0.5))
+
+dat_hyp_2021 %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage") %>% 
+  filter(Missing_Percentage > 0)
+
+miceObj_2021 <- mice::mice(dat_hyp_2021, method = "cart")
 dat_hyp_mice_2021 <- mice::complete(miceObj_2021, "all")
 
 View(dat_hyp_mice_2021[[1]] %>%
@@ -999,32 +1148,62 @@ View(dat_hyp_mice_2021[[1]] %>%
        filter(Missing_Percentage > 0))
 
 dat_hyp_mice_2021 <- lapply(dat_hyp_mice_2021, function(df){
-  df <- df  %>% 
+  df <- df %>% select(-IMQ011, -SMQ020, -ACD011A) %>% 
     na.omit()
 })
 
-
+save(dat_hyp_2021, miceObj_2021, dat_hyp_mice_2021, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_mice_2021.RData")
 
 categorical_vars_2021 <- dat_hyp_mice_2021[[1]] %>% select(where(is.character), where(is.factor)) %>% colnames()
 
-dat_hyp_2021_cat <- lapply(dat_hyp_mice_2021, function(x){
-  x <- x %>% 
-    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata) %>% 
-    mutate(across(where(is.character), as.factor))
-  x <- x[colnames(x) %in% categorical_vars_2021]
-})
+dat_hyp_mice_2021_cat <- lapply(dat_hyp_mice_2021, function(x){x <- x %>% 
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7) %>% 
+  mutate(across(where(is.character), as.factor))
+x <- x[colnames(x) %in% categorical_vars_2021]
+x <- predict(dummyVars("~ .", data = x), x)})
 
-dat_hyp_2021_continuous <- lapply(dat_hyp_mice_2021, function(x){
-  x <- x %>% 
-    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata)  
-  x <- x[!colnames(x) %in% categorical_vars_2021]
-  x <- x %>% mutate(across(where(is.double), as.numeric))})
+dat_hyp_mice_2021_continuous <- lapply(dat_hyp_mice_2021, function(x){x <- x %>% 
+  select(-Year, -SEQN,-svy_weight_mec, -svy_psu, -svy_strata,
+         -bp_control_jnc7) 
+x <- x[!colnames(x) %in% categorical_vars_2021]
+x <- predict(preProcess(x, method = c("center", "scale")), x)})
 
 svy_vars_2021 <- lapply(dat_hyp_mice_2021, function(x){x <- x %>% 
-  select(SEQN,svy_weight_mec, svy_psu, svy_strata)})
+  select(Year, SEQN,svy_weight_mec, svy_psu, svy_strata,
+         bp_control_jnc7)})
 
-dat_hyp_2021_fci <- Map(cbind, dat_hyp_2021_cat, dat_hyp_2021_continuous)
+dat_hyp_2021_std <- Map(cbind, svy_vars_2021, dat_hyp_mice_2021_cat, dat_hyp_mice_2021_continuous)
 
-dat_hyp_2021_final <- Map(cbind, svy_vars_2021, dat_hyp_2021_fci)
 
-save(dat_hyp_2021_fci,dat_hyp_2021_final, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
+dat_hyp_2021_std <- lapply(dat_hyp_2021_std, function(x){x <- x %>%
+  select(colnames(x)[!grepl("\\.No$", colnames(x))], -Year) %>%
+  na.omit()})
+
+View(dat_hyp_2021_std[[1]] %>%
+       summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+       pivot_longer(cols = everything(), names_to = "Column", values_to = "Missing_Percentage"))
+
+## Bootsrapping ####
+# split into 80% training and 20% testing
+
+set.seed(2024)
+dat_hyp_2021_std_ind <- sample(1:nrow(dat_hyp_2021_std[[1]]), 0.8*nrow(dat_hyp_2021_std[[1]]))
+dat_hyp_2021_std_train <- lapply(dat_hyp_2021_std, function(x){x[dat_hyp_2021_std_ind, ]})
+dat_hyp_2021_std_test <- lapply(dat_hyp_2021_std, function(x){x[-dat_hyp_2021_std_ind, ]})
+
+# Perform resampling to create multiple training sets
+
+num_replicates <- 50  
+dat_hyp_2021_samp <- vector("list", length = num_replicates)
+
+for (i in 1:num_replicates) {
+  dat_hyp_2021_samp[[i]] <- lapply(dat_hyp_2021_std_train, function(x){x[sample(1:nrow(dat_hyp_2021_std_train[[1]]), replace = TRUE), ]})
+}
+
+save(dat_hyp_2021_std_train, dat_hyp_2021_std_test, 
+     dat_hyp_2021_samp, 
+     file = "data/cleaned/dat_train_test_bootstrapped_2021.RData")
+
+
+

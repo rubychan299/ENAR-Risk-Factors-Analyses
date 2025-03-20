@@ -195,3 +195,28 @@ cat("AUC for 2017 data:", auc_2017_mean, "\n")
 
 save(auc_2013, auc_2015, auc_2017,auc_2013_mean, auc_2015_mean, auc_2017_mean, file = "data/cleaned/2013_to_2023_cleaned/auc_values_ES.RData")
 save(top_features_2013, top_features_2015, top_features_2017, file = "data/cleaned/2013_to_2023_cleaned/top_features_ES.RData")
+
+
+# 2021####
+
+load("data/cleaned/dat_train_test_bootstrapped_2021.RData")
+
+outcome_var <- "bp_control_jnc7"
+columns_to_exclude <- c('bp_control_jnc7', 'SEQN', 
+                        "svy_strata", "svy_weight_mec", "svy_psu")
+all_vars <- colnames(dat_hyp_2021_samp[[1]][[1]])
+predictor_vars <- setdiff(all_vars, columns_to_exclude)
+elastic_net_models_2021 <- process_nested_list(dat_hyp_2021_samp, outcome_var, predictor_vars)
+
+
+# Aggregate feature importance for each year
+top_features_2021 <- aggregate_feature_importance(elastic_net_models_2021)
+
+auc_2021 <- lapply(seq_along(dat_hyp_2021_std_train), function(i){
+  evaluate_model_performance(dat_hyp_2021_std_train[[i]], dat_hyp_2021_std_test[[i]], outcome_var, predictor_vars)}) 
+
+auc_2021 <- do.call(rbind,auc_2021) 
+auc_2021_mean <- c(mean(auc_2021), sd(auc_2021))
+
+save(top_features_2021, auc_2021, auc_2021_mean, file = "data/cleaned/2013_to_2023_cleaned/features_auc_ES_2021.RData")
+

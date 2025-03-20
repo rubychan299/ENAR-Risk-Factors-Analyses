@@ -3,6 +3,7 @@ library(readr)
 
 load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/dat_hyp_mice.RData")
 load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/top_features_ES.RData")
+load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/features_auc_ES_2021.RData")
 
 # Use only JNC7 features
 features_en_jnc <- bind_cols(top_features_2013, top_features_2015, top_features_2017) %>% 
@@ -67,3 +68,30 @@ dat_hyp_2017_final <- lapply(dat_hyp_mice_2017, function(x) x[, colnames(x) %in%
 save(dat_hyp_2013_final, dat_hyp_2015_final, dat_hyp_2017_final, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2013_2020.RData")
 
 
+clean_names <- function(features) {
+  sub("\\..*", "", features)
+}
+
+# Apply the cleaning function to each feature list
+cleaned_2013 <- clean_names(top_features_2013)
+cleaned_2015 <- clean_names(top_features_2015)
+cleaned_2017 <- clean_names(top_features_2017)
+cleaned_2021 <- clean_names(top_features_2021)
+
+# Find the intersection of the cleaned variable names
+common_features <- intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017)
+union_features <- union(union(cleaned_2013, cleaned_2015), cleaned_2017)
+
+common_features_2021 <- intersect(intersect(intersect(cleaned_2013, cleaned_2015), cleaned_2017), cleaned_2021)
+union_features_2021 <- union(union(union(cleaned_2013, cleaned_2015), cleaned_2017), cleaned_2021)
+
+common_union_features_2021 <- intersect(union_features, cleaned_2021)
+
+features_2021 <- c(
+  common_union_features_2021,"demo_gender", "demo_race", "SEQN", "svy_weight_mec", 
+  "svy_psu", "svy_strata", "bp_control_jnc7"
+)
+
+dat_hyp_2021_final <- lapply(dat_hyp_mice_2021, function(x) x[, colnames(x) %in% features_2021])
+
+save(dat_hyp_2021_final, file = "data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2021.RData")

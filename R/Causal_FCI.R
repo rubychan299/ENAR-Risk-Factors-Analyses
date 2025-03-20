@@ -190,14 +190,14 @@ resid_2017 <- lapply(dat_hyp_2017_fci, function(df) {
   return(residuals_df)  # Ensure the result is returned
 })
 
-load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_hyp_2021_fci.RData")
+load("~/Documents/GitHub/ENAR-Risk-Factors-Analyses/data/cleaned/2013_to_2023_cleaned/dat_hyp_final_2021.RData")
 
-categorical_vars_2021 <- dat_hyp_2021_fci[[1]] %>% select(where(is.character), where(is.factor)) %>% colnames()
+categorical_vars_2021 <- dat_hyp_2021_final[[1]] %>% select(where(is.character), where(is.factor)) %>% colnames()
 
 # Convert categorical variables to factors
-dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_fci, function(x){
+dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>%
-    select(-demo_gender,-demo_race, -cc_smoke, -cc_bmi) %>%
+    select(-demo_gender,-demo_race, -phq9_category, -cc_bmi) %>%
     mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2021]
   x <- predict(dummyVars("~ .", data = x), x)
@@ -205,17 +205,17 @@ dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_fci, function(x){
   x <- x[,colnames(x)[!grepl("\\.Fair/Poor$", colnames(x))]]
 })
 
-dat_hyp_2021_final_continuous <- lapply(dat_hyp_2021_fci, function(x){
+dat_hyp_2021_final_continuous <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>%
-    select(-demo_gender,-demo_race, -LBXTHG, -BMXBMI) %>% 
+    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,-demo_race) %>% 
     mutate(across(where(is.character), as.factor)) %>%
-    mutate(cc_smoke = as.numeric(cc_smoke),
+    mutate(phq9_category = as.numeric(phq9_category),
            cc_bmi = as.numeric(cc_bmi))
-  x <- cbind(x[!colnames(x) %in% categorical_vars_2021], x %>% select(cc_smoke, cc_bmi))
+  x <- cbind(x[!colnames(x) %in% categorical_vars_2021], x %>% select(phq9_category, cc_bmi))
   x <- x %>% mutate(across(where(is.double), as.numeric))})
 
 
-dat_hyp_2021_final_control <- lapply(dat_hyp_2021_fci, function(x){
+dat_hyp_2021_final_control <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>%
     select(demo_age_years, demo_gender, demo_race)})
 
@@ -267,10 +267,9 @@ Context_2017 <- c("HIQ011", "bp_control_jnc7", "cc_diabetes", "cc_ckd", "URXUMS_
                   "LBXSTR_resid", "LBDMONO_resid", "LBXBPB_resid", 
                   "LBXTC_resid", "phq9_category_resid","cc_bmi_resid","WHQ030_resid")
 
-Tiers_2021 <- c(3, 3, 3, 4, 2, 1, 1, 1, 1, 1, 3, 1, 2)
-Context_2021 <- c("HIQ011", "KIQ022", "OHQ845", "bp_control_jnc7", "cc_cvd_any", "cc_diabetes", 
-                  "LBXRBCSI_resid", "LBXBPB_resid", "LBXTC_resid", 
-                  "LBDMONO_resid", "weight_change_resid", "cc_smoke_resid", "cc_bmi_resid")
+Tiers_2021 <- c(3, 4, 2, 2, 1, 1, 2,2)
+Context_2021 <- c("HIQ011","bp_control_jnc7","cc_cvd_any","cc_diabetes","LBXBPB_resid","LBXTC_resid",
+                  "phq9_category_resid","cc_bmi_resid")
 
 # tier 1: lab variables
 # tier 2: diseases 

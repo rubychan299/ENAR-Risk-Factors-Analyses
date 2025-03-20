@@ -320,14 +320,15 @@ edges_2021_1 <- data.frame(
   type = "directed"
 )
 
-edges_2021_2 <- data.frame(
-  from = colnames(adj_matrix_2021)[edge_list_2021_2[,1]],
-  to   = colnames(adj_matrix_2021)[edge_list_2021_2[,2]],
-  type = "bidirectional"
-)
+# edges_2021_2 <- data.frame(
+#   from = colnames(adj_matrix_2021)[edge_list_2021_2[,1]],
+#   to   = colnames(adj_matrix_2021)[edge_list_2021_2[,2]],
+#   type = "bidirectional"
+# )
 
 # Combine both edge lists
-edges_2021 <- rbind(edges_2021_1, edges_2021_2)
+# edges_2021 <- rbind(edges_2021_1, edges_2021_2)
+edges_2021 <- edges_2021_1
 
 # Print extracted edges
 print(edges_2021)
@@ -336,16 +337,16 @@ print(edges_2021)
 dag_directed_2021 <- paste(edges_2021$to[edges_2021$type == "directed"], "~", edges_2021$from[edges_2021$type == "directed"], collapse = ", ")
 
 # Convert bidirectional edges (X ↔ Y) by adding both directions
-dag_bidirectional_2021 <- paste(edges_2021$from[edges_2021$type == "bidirectional"], "~~", edges_2021$to[edges_2021$type == "bidirectional"], ",",
-                                edges_2021$to[edges_2021$type == "bidirectional"], "~~", edges_2021$from[edges_2021$type == "bidirectional"], collapse = ", ")
+# dag_bidirectional_2021 <- paste(edges_2021$from[edges_2021$type == "bidirectional"], "~~", edges_2021$to[edges_2021$type == "bidirectional"], ",",
+#                                 edges_2021$to[edges_2021$type == "bidirectional"], "~~", edges_2021$from[edges_2021$type == "bidirectional"], collapse = ", ")
 
 # Combine both formulas if there are bidirectional edges
-dag_formula_2021 <- ifelse(nchar(dag_bidirectional_2021) > 0,
-                           paste(dag_directed_2021, ",", dag_bidirectional_2021),
-                           dag_directed)
+# dag_formula_2021 <- ifelse(nchar(dag_bidirectional_2021) > 0,
+#                            paste(dag_directed_2021, ",", dag_bidirectional_2021),
+#                            dag_directed)
 
 # Create dagify() structure
-dag_model_2021 <- eval(parse(text = paste0("dagify(", dag_formula_2021, ")")))
+dag_model_2021 <- eval(parse(text = paste0("dagify(", dag_directed_2021, ")")))
 
 # Print DAG model
 print(dag_model_2021)
