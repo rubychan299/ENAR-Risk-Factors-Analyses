@@ -29,7 +29,7 @@ features_2013 <- c(
   "LBXSBU", "WHQ030","cc_cvd_chd",
   "cc_cvd_stroke", "demo_age_years", 
   "LBXSBU","LBXRBCSI","LBDMONO",
-  "demo_gender",
+  "demo_gender", "bp_med_use",
   "SEQN", "svy_weight_mec", 
   "svy_psu", "svy_strata", "bp_control_jnc7")
   
@@ -43,7 +43,7 @@ features_2015 <- c(
   "HIQ011", "PFQ051", "LBXTC",
   "LBXTC", "demo_gender","demo_age_years", 
   "FSDHH", "race", "cc_bmi","cc_smoke", "race",
-  "cc_cvd_any", "race", "FSDAD",
+  "cc_cvd_any", "race", "FSDAD","bp_med_use",
   "FSDAD", "phq9_category", "cc_diabetes","weight_change",
   "DBQ700","SEQN", "svy_weight_mec", 
   "svy_psu", "svy_strata", "bp_control_jnc7")
@@ -57,7 +57,7 @@ features_2017 <- c(
   "demo_gender","demo_age_years", 
   "MCQ080", "LBXSTR", "LBXBPB", "PAQ605",
   "WHQ030", "LBXSUA", 
-  "PAQ620", "LBXTC", "URXUMS",
+  "PAQ620", "LBXTC", "URXUMS","bp_med_use",
   "LBXTHG", "KIQ022", "phq9_category", "URXUCR",
   "LBDMONO", "SEQN", "svy_weight_mec", 
   "svy_psu", "svy_strata", "bp_control_jnc7"
@@ -89,7 +89,7 @@ common_union_features_2021 <- intersect(union_features, cleaned_2021)
 
 features_2021 <- c(
   common_union_features_2021,"demo_gender", "demo_race", "SEQN", "svy_weight_mec", 
-  "svy_psu", "svy_strata", "bp_control_jnc7"
+  "svy_psu", "svy_strata", "bp_control_jnc7", "bp_med_use"
 )
 
 dat_hyp_2021_final <- lapply(dat_hyp_mice_2021, function(x) x[, colnames(x) %in% features_2021])

@@ -17,7 +17,7 @@ categorical_vars_2013 <- dat_hyp_2013_final[[1]] %>% select(where(is.character),
 dat_hyp_2013_final_cat <- lapply(dat_hyp_2013_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race, -phq9_category, -cc_bmi, -FSDAD, -WHQ030) %>%
+           -race, -phq9_category, -cc_bmi, -FSDAD, -WHQ030, -bp_med_use) %>%
   mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2013]
   x <- predict(dummyVars("~ .", data = x), x)
@@ -28,7 +28,7 @@ dat_hyp_2013_final_cat <- lapply(dat_hyp_2013_final, function(x){
 dat_hyp_2013_final_continuous <- lapply(dat_hyp_2013_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race) %>% 
+           -race, -bp_med_use) %>% 
     mutate(across(where(is.character), as.factor)) %>% 
     mutate(phq9_category = as.numeric(phq9_category),
            cc_bmi = as.numeric(cc_bmi), 
@@ -76,7 +76,7 @@ categorical_vars_2015 <- dat_hyp_2015_final[[1]] %>% select(where(is.character),
 dat_hyp_2015_final_cat <- lapply(dat_hyp_2015_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race, -phq9_category, -cc_bmi, -FSDHH, -cc_smoke,
+           -race, -phq9_category, -cc_bmi, -FSDHH, -cc_smoke,-bp_med_use,
            -FSDAD) %>%
     mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2013]
@@ -88,7 +88,7 @@ dat_hyp_2015_final_cat <- lapply(dat_hyp_2015_final, function(x){
 dat_hyp_2015_final_continuous <- lapply(dat_hyp_2015_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race) %>% 
+           -race, -bp_med_use) %>% 
     mutate(across(where(is.character), as.factor)) %>% 
     mutate(phq9_category = as.numeric(phq9_category),
            cc_bmi = as.numeric(cc_bmi), 
@@ -136,7 +136,7 @@ categorical_vars_2017 <- dat_hyp_2017_final[[1]] %>% select(where(is.character),
 dat_hyp_2017_final_cat <- lapply(dat_hyp_2017_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race, -phq9_category, -cc_bmi, -WHQ030) %>%
+           -race, -phq9_category, -cc_bmi, -WHQ030, -bp_med_use) %>%
     mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2013]
   x <- predict(dummyVars("~ .", data = x), x)
@@ -146,7 +146,7 @@ dat_hyp_2017_final_cat <- lapply(dat_hyp_2017_final, function(x){
 dat_hyp_2017_final_continuous <- lapply(dat_hyp_2017_final, function(x){
   x <- x %>%
     select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,
-           -race,-LBXTHG, -URXUCR, -LBXSUA) %>% 
+           -race,-LBXTHG, -URXUCR, -LBXSUA, -bp_med_use) %>% 
     mutate(across(where(is.character), as.factor)) %>% 
     mutate(phq9_category = as.numeric(phq9_category),
            cc_bmi = as.numeric(cc_bmi), 
@@ -197,7 +197,7 @@ categorical_vars_2021 <- dat_hyp_2021_final[[1]] %>% select(where(is.character),
 # Convert categorical variables to factors
 dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>%
-    select(-demo_gender,-demo_race, -phq9_category, -cc_bmi) %>%
+    select(-demo_gender,-demo_race, -phq9_category, -cc_bmi, -bp_med_use) %>%
     mutate(across(where(is.character), as.factor))
   x <- x[colnames(x) %in% categorical_vars_2021]
   x <- predict(dummyVars("~ .", data = x), x)
@@ -207,7 +207,7 @@ dat_hyp_2021_final_cat <- lapply(dat_hyp_2021_final, function(x){
 
 dat_hyp_2021_final_continuous <- lapply(dat_hyp_2021_final, function(x){
   x <- x %>%
-    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,-demo_race) %>% 
+    select(-SEQN,-svy_weight_mec, -svy_psu, -svy_strata, -demo_gender,-demo_race, -bp_med_use) %>% 
     mutate(across(where(is.character), as.factor)) %>%
     mutate(phq9_category = as.numeric(phq9_category),
            cc_bmi = as.numeric(cc_bmi))
@@ -674,11 +674,11 @@ pc_cpdag_2021 <- dag2cpdag(pc.fit.2021@graph)
 # Run jointIda with the regularized covariance matrix
 # ida.total.2021 <- ida(x.pos = 1, y.pos = 4, cov_matrix_2021, pc_cpdag_2021,method = "global", type = "cpdag")
 
-ida.total.2021 <- jointIda(x.pos = c(1:3, 5:13), y.pos = 4, cov_matrix_2021, pc_cpdag_2021, technique = "RRC", type = "cpdag")
+ida.total.2021 <- jointIda(x.pos = c(1, 3:8), y.pos = 2, cov_matrix_2021, pc_cpdag_2021, technique = "RRC", type = "cpdag")
 ida.total.2021.mean <- apply(ida.total.2021, 1, mean)
-names(ida.total.2021.mean) <- colnames(cov_matrix_2021)[-4]
+names(ida.total.2021.mean) <- colnames(cov_matrix_2021)[-2]
 ida.total.2021.sd <- apply(ida.total.2021, 1, sd)
-names(ida.total.2021.sd) <- colnames(cov_matrix_2021)[-4]
+names(ida.total.2021.sd) <- colnames(cov_matrix_2021)[-2]
 
 ida.est.2021 <- vector("list", ncol(cov_matrix_2021))
 

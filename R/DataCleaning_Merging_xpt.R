@@ -666,7 +666,14 @@ d <- d[d == T]
 dat_hyp <- dat_full_hyp[dat_full_hyp$htn_jnc7 == "Yes",]
 
 dat_hyp <- dat_hyp %>% 
-  select(-contains("uncontrolled"), -contains("escesh"), -contains("bp_med"), -contains("chol_med"),
+  select(-contains("uncontrolled"), -contains("escesh"), 
+         # -contains("bp_med"), 
+         -bp_med_recommended_jnc7, -bp_med_recommended_accaha, -bp_med_recommended_accaha, -bp_med_recommended_escesh,
+         -bp_med_n_class, -bp_med_n_pills, -bp_med_combination, -bp_med_pills_gteq_2, -bp_med_ace, -bp_med_aldo,
+         -bp_med_alpha, -bp_med_angioten, -bp_med_beta, -bp_med_central, -bp_med_ccb, -bp_med_ccb_dh, 
+         -bp_med_ccb_ndh, -bp_med_diur_Ksparing, -bp_med_diur_loop, -bp_med_diur_thz, -bp_med_renin_inhibitors,
+         -bp_med_vasod,
+         -contains("chol_med"),
          -chol_total, -chol_total_gteq_200,-chol_total_gteq_240, chol_hdl, -chol_hdl_low, 
          -chol_trig, -chol_trig_gteq_150, -chol_ldl, -chol_ldl_lt_70, -chol_ldl_gteq_70,
          -chol_ldl_gteq_190, -chol_nonhdl,-chol_nonhdl_lt_100, -chol_nonhdl_gteq_100, -chol_nonhdl_gteq_220,
@@ -1129,7 +1136,8 @@ dat_hyp_2021 <- dat_hyp_2021[dat_hyp_2021$htn_jnc7 == "Yes",]
 
 dat_hyp_2021 <- dat_hyp_2021 %>% 
   filter(!is.na(svy_psu)) %>%
-  select(-BPQ150, -BPXSY, -BPQ020, -BPXDI, -BPXPULS, -htn_jnc7, 
+  rename(bp_med_use = BPQ150) %>% 
+  select(-BPXSY, -BPQ020, -BPXDI, -BPXPULS, -htn_jnc7, 
          -DXDTRBMD, -DXXLABMD, -LBDLDL, -URXUCR, -LBXCOT, -phq9, -BMXBMI,
          -hearing_loss) %>% 
   select(where(~mean(is.na(.)) < 0.5))
